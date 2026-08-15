@@ -22,6 +22,17 @@ export type DashboardStats = {
   ingresosMes: number;
 };
 
+export type LineaAsesoriaAdmin = "Personal" | "Corporativo" | "Deportivo";
+
+export type ClienteAdmin = {
+  id: string;
+  nombre: string;
+  iniciales: string;
+  linea: LineaAsesoriaAdmin;
+  telefono: string;
+  correo: string;
+};
+
 export const ADMIN_MOCK = {
   nombre: "Héctor",
   rol: "Administrador",
@@ -68,6 +79,79 @@ export const PROXIMAS_CITAS_MOCK: CitaAdmin[] = [
     clienteNombre: "Roberto Peña",
     clienteIniciales: "RP",
     hora: "04:00 PM",
+    modalidad: "Presencial",
+    estado: "pendiente",
+  },
+];
+
+export const CLIENTES_MOCK: ClienteAdmin[] = [
+  {
+    id: "cl1",
+    nombre: "María Fernández",
+    iniciales: "MF",
+    linea: "Personal",
+    telefono: "809-555-1234",
+    correo: "maria.fernandez@correo.com",
+  },
+  {
+    id: "cl2",
+    nombre: "Luis Ortega",
+    iniciales: "LO",
+    linea: "Corporativo",
+    telefono: "809-555-2211",
+    correo: "luis.ortega@correo.com",
+  },
+  {
+    id: "cl3",
+    nombre: "Carla Núñez",
+    iniciales: "CN",
+    linea: "Deportivo",
+    telefono: "809-555-7890",
+    correo: "carla.nunez@correo.com",
+  },
+  {
+    id: "cl4",
+    nombre: "Roberto Peña",
+    iniciales: "RP",
+    linea: "Personal",
+    telefono: "809-555-4432",
+    correo: "roberto.pena@correo.com",
+  },
+  {
+    id: "cl5",
+    nombre: "Ana Vargas",
+    iniciales: "AV",
+    linea: "Corporativo",
+    telefono: "809-555-6690",
+    correo: "ana.vargas@correo.com",
+  },
+  {
+    id: "cl6",
+    nombre: "Miguel Castillo",
+    iniciales: "MC",
+    linea: "Deportivo",
+    telefono: "809-555-3345",
+    correo: "miguel.castillo@correo.com",
+  },
+];
+
+export const TODAS_CITAS_MOCK: CitaAdmin[] = [
+  ...PROXIMAS_CITAS_MOCK,
+  {
+    id: "c5",
+    clienteId: "cl5",
+    clienteNombre: "Ana Vargas",
+    clienteIniciales: "AV",
+    hora: "10:00 AM",
+    modalidad: "Virtual",
+    estado: "confirmada",
+  },
+  {
+    id: "c6",
+    clienteId: "cl6",
+    clienteNombre: "Miguel Castillo",
+    clienteIniciales: "MC",
+    hora: "05:30 PM",
     modalidad: "Presencial",
     estado: "pendiente",
   },
