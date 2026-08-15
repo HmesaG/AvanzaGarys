@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Clock, Laptop, MapPin, CheckCircle2, X } from "lucide-react";
+import Link from "next/link";
+import { Calendar, Clock, Laptop, MapPin, CheckCircle2, Lock, X } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -9,6 +10,8 @@ import {
   getClienteState,
   saveSesion,
   clearSesion,
+  puedeAgendar,
+  type ClienteState,
   type SesionAgendada,
 } from "@/lib/client-state";
 import { HORARIOS_DISPONIBLES } from "@/lib/mock-data";
@@ -49,9 +52,12 @@ export default function AgendaPage() {
   const [horaSeleccionada, setHoraSeleccionada] = useState<string | null>(null);
   const [modalidad, setModalidad] = useState<"Virtual" | "Presencial">("Virtual");
   const [confirmando, setConfirmando] = useState(false);
+  const [clienteState, setClienteState] = useState<ClienteState | null>(null);
 
   useEffect(() => {
-    setSesionActual(getClienteState().sesion);
+    const state = getClienteState();
+    setClienteState(state);
+    setSesionActual(state.sesion);
   }, []);
 
   async function handleConfirmar() {
@@ -97,6 +103,38 @@ export default function AgendaPage() {
     clearSesion();
     setSesionActual(null);
     successToast("Sesión cancelada");
+  }
+
+  if (clienteState && !puedeAgendar(clienteState)) {
+    return (
+      <PageTransition footer={<BottomNav />}>
+        <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
+          <BackHeader title="Agenda" subtitle="Reserva o revisa tu próxima sesión" />
+
+          <section
+            aria-label="Agenda bloqueada"
+            className="flex flex-col items-center rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-avanza-orange-light">
+              <Lock className="h-6 w-6 text-avanza-orange" aria-hidden="true" />
+            </span>
+            <p className="mt-3 text-base font-bold text-gray-900">
+              Aún no puedes agendar
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Primero necesitas la aprobación de tu evaluación, aceptar el
+              consentimiento y registrar tu pago.
+            </p>
+            <Link
+              href="/programa"
+              className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-avanza-green px-5 font-semibold text-white transition-all duration-150 hover:bg-avanza-green-dark active:scale-[0.98]"
+            >
+              Ver mi programa
+            </Link>
+          </section>
+        </main>
+      </PageTransition>
+    );
   }
 
   return (

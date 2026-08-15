@@ -1,15 +1,26 @@
 "use client";
 
-import { Users, Calendar, Clock, DollarSign } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Users, Calendar, Clock, DollarSign, ClipboardCheck, Check, X } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
+import SelectField from "@/components/SelectField";
 import {
   ADMIN_MOCK,
   DASHBOARD_STATS_MOCK,
   PROXIMAS_CITAS_MOCK,
   formatIngresos,
 } from "@/lib/admin-mock-data";
+import {
+  getClienteState,
+  aprobarEvaluacion,
+  rechazarEvaluacion,
+  tipoAsesoriaLabel,
+  type ClienteState,
+} from "@/lib/client-state";
+import { OPCIONES_TIEMPO, PROGRAMAS_MOCK } from "@/lib/mock-data";
+import { erpAlert, successToast } from "@/lib/alerts";
 
 const STATS = [
   {
@@ -42,6 +53,133 @@ const STATS = [
   },
 ] as const;
 
+// Sección "Evaluación pendiente" — lee el client-state real (localStorage,
+// mismo dispositivo) porque Fase 1 no tiene backend multi-cliente: aquí el
+// coach revisa la evaluación enviada, elige un programa del catálogo mock
+// según la línea de asesoría, y aprueba o rechaza (pasos 5-6 del flujo real).
+function EvaluacionPendiente() {
+  const [state, setState] = useState<ClienteState | null>(null);
+  const [programaId, setProgramaId] = useState("");
+  const [procesando, setProcesando] = useState(false);
+
+  useEffect(() => {
+    setState(getClienteState());
+  }, []);
+
+  if (!state?.evaluacion || state.estadoEvaluacion !== "pendiente") return null;
+
+  const tipo = state.registro?.tipoAsesoria || "personal";
+  const programas = PROGRAMAS_MOCK[tipo];
+
+  async function handleAprobar() {
+    const programa = programas.find((p) => p.id === programaId);
+    if (!programa) return;
+    const result = await erpAlert.fire({
+      icon: "question",
+      title: "¿Aprobar evaluación?",
+      text: `Se asignará el programa "${programa.nombre}" al cliente.`,
+      showCancelButton: true,
+      confirmButtonText: "Sí, aprobar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) return;
+
+    setProcesando(true);
+    window.setTimeout(() => {
+      aprobarEvaluacion(programa);
+      setState(getClienteState());
+      setProcesando(false);
+      successToast("Evaluación aprobada");
+    }, 350);
+  }
+
+  async function handleRechazar() {
+    const result = await erpAlert.fire({
+      icon: "warning",
+      title: "¿Rechazar evaluación?",
+      text: "El cliente deberá completarla de nuevo.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, rechazar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) return;
+
+    setProcesando(true);
+    window.setTimeout(() => {
+      rechazarEvaluacion();
+      setState(getClienteState());
+      setProcesando(false);
+      successToast("Evaluación rechazada");
+    }, 350);
+  }
+
+  return (
+    <section
+      aria-label="Evaluación pendiente"
+      className="mb-6 rounded-2xl border border-avanza-orange-light bg-white p-4"
+    >
+      <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+        <ClipboardCheck className="h-4 w-4 text-avanza-orange" aria-hidden="true" />
+        Evaluación pendiente de revisión
+      </p>
+
+      <div className="mb-4 space-y-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+        <p>
+          <span className="font-medium text-gray-900">Cliente:</span>{" "}
+          {state.registro?.nombreCompleto || "Sin registrar"} ·{" "}
+          {tipoAsesoriaLabel(tipo)}
+        </p>
+        <p>
+          <span className="font-medium text-gray-900">Objetivo:</span>{" "}
+          {state.evaluacion.objetivoPrincipal}
+        </p>
+        <p>
+          <span className="font-medium text-gray-900">Dificultad:</span>{" "}
+          {state.evaluacion.principalDificultad}
+        </p>
+        <p>
+          <span className="font-medium text-gray-900">Tiempo deseado:</span>{" "}
+          {OPCIONES_TIEMPO.find((o) => o.value === state.evaluacion?.tiempoDeseado)
+            ?.label ?? state.evaluacion.tiempoDeseado}
+        </p>
+      </div>
+
+      <div className="mb-4">
+        <SelectField
+          id="programaAsignar"
+          label="Programa a asignar"
+          placeholder="Selecciona un programa"
+          options={programas.map((p) => ({ value: p.id, label: p.nombre }))}
+          value={programaId}
+          onChange={setProgramaId}
+          required
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleAprobar}
+          disabled={!programaId || procesando}
+          className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-avanza-green px-4 font-semibold text-white transition-all duration-150 hover:bg-avanza-green-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Check className="h-4 w-4" aria-hidden="true" />
+          Aprobar
+        </button>
+        <button
+          type="button"
+          onClick={handleRechazar}
+          disabled={procesando}
+          className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200 px-4 font-semibold text-red-600 transition-all duration-150 hover:bg-red-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+          Rechazar
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export default function AdminDashboardPage() {
   return (
     <PageTransition footer={<AdminBottomNav />}>
@@ -54,6 +192,8 @@ export default function AdminDashboardPage() {
           </h2>
           <p className="mt-1 text-sm text-gray-500">Aquí tienes un resumen general</p>
         </section>
+
+        <EvaluacionPendiente />
 
         <section aria-label="Resumen general" className="mb-6 grid grid-cols-2 gap-3">
           {STATS.map(({ label, value, icon: Icon, color, bg }) => (

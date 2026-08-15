@@ -11,11 +11,14 @@ import {
   Target,
   ArrowRight,
   Sparkles,
+  Clock,
+  Award,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import {
   getClienteState,
+  puedeAgendar,
   tipoAsesoriaLabel,
   type ClienteState,
 } from "@/lib/client-state";

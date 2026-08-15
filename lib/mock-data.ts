@@ -107,3 +107,71 @@ export const TAREAS_INICIALES: Tarea[] = [
 
 export const OBJETIVO_PRINCIPAL_MOCK = "Mejorar mi autoestima y manejo de estrés";
 export const PROGRESO_MOCK = 60;
+
+// Programas mock por línea de asesoría — el coach elige uno al aprobar la
+// evaluación de un cliente (paso 6 del flujo real: asignación del programa).
+export type Programa = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  sesionesIncluidas: number;
+  tipoAsesoria: TipoAsesoria;
+  precio: number;
+};
+
+export const PROGRAMAS_MOCK: Record<TipoAsesoria, Programa[]> = {
+  personal: [
+    {
+      id: "personal-basico",
+      nombre: "Impulso Personal",
+      descripcion: "Acompañamiento individual enfocado en un objetivo concreto a corto plazo.",
+      sesionesIncluidas: 4,
+      tipoAsesoria: "personal",
+      precio: 6000,
+    },
+    {
+      id: "personal-integral",
+      nombre: "Transformación Integral",
+      descripcion: "Proceso completo de coaching personal con seguimiento semanal.",
+      sesionesIncluidas: 8,
+      tipoAsesoria: "personal",
+      precio: 11000,
+    },
+  ],
+  corporativo: [
+    {
+      id: "corporativo-equipo",
+      nombre: "Liderazgo de Equipo",
+      descripcion: "Desarrollo de habilidades de liderazgo y gestión de equipos.",
+      sesionesIncluidas: 6,
+      tipoAsesoria: "corporativo",
+      precio: 15000,
+    },
+    {
+      id: "corporativo-ejecutivo",
+      nombre: "Coaching Ejecutivo",
+      descripcion: "Acompañamiento estratégico para posiciones de alta responsabilidad.",
+      sesionesIncluidas: 10,
+      tipoAsesoria: "corporativo",
+      precio: 24000,
+    },
+  ],
+  deportivo: [
+    {
+      id: "deportivo-rendimiento",
+      nombre: "Alto Rendimiento",
+      descripcion: "Preparación mental para competencia y mejora del enfoque deportivo.",
+      sesionesIncluidas: 6,
+      tipoAsesoria: "deportivo",
+      precio: 9000,
+    },
+    {
+      id: "deportivo-constancia",
+      nombre: "Constancia y Hábito",
+      descripcion: "Construcción de rutinas sostenibles y manejo de la motivación.",
+      sesionesIncluidas: 4,
+      tipoAsesoria: "deportivo",
+      precio: 5500,
+    },
+  ],
+};

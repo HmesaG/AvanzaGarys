@@ -63,8 +63,8 @@ export default function EvaluacionPage() {
     saveEvaluacion(form);
     window.setTimeout(() => {
       setSubmitting(false);
-      successToast("Evaluación guardada");
-      router.push("/agenda");
+      successToast("Evaluación enviada para revisión");
+      router.push("/programa");
     }, 400);
   }
 
@@ -126,7 +126,7 @@ export default function EvaluacionPage() {
             disabled={submitting}
             className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-xl bg-avanza-green px-5 font-semibold text-white transition-all duration-150 hover:bg-avanza-green-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? "Guardando..." : "Continuar a agenda"}
+            {submitting ? "Enviando..." : "Enviar evaluación"}
           </button>
         </form>
       </main>
