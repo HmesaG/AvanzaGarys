@@ -34,26 +34,26 @@ const config: Config = {
       keyframes: {
         "fade-in": {
           "0%": { opacity: "0", transform: "translateY(8px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "100%": { opacity: "1", transform: "none" },
         },
         "fade-in-up": {
           "0%": { opacity: "0", transform: "translateY(16px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "100%": { opacity: "1", transform: "none" },
         },
         "scale-in": {
           "0%": { opacity: "0", transform: "scale(0.96)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
+          "100%": { opacity: "1", transform: "none" },
         },
         "slide-up-sheet": {
           "0%": { opacity: "0", transform: "translateY(24px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "100%": { opacity: "1", transform: "none" },
         },
         "progress-fill": {
           "0%": { width: "0%" },
         },
         "bubble-in": {
           "0%": { opacity: "0", transform: "translateY(6px) scale(0.98)" },
-          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+          "100%": { opacity: "1", transform: "none" },
         },
       },
       animation: {
