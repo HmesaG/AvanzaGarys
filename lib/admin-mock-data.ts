@@ -10,10 +10,24 @@ export type CitaAdmin = {
   clienteId: string;
   clienteNombre: string;
   clienteIniciales: string;
+  /** Fecha ISO (YYYY-MM-DD), siempre dentro del mes actual — ver `fechaDelMes`. */
+  fecha: string;
   hora: string;
   modalidad: "Virtual" | "Presencial";
   estado: EstadoCita;
 };
+
+/**
+ * Arma una fecha ISO dentro del mes actual. Los mocks no tienen fecha real
+ * de backend, así que anclamos las citas al mes en curso para que la vista
+ * calendario siempre tenga contenido visible al abrir la app. `dia` debe
+ * ser 1–28 para ser válido en cualquier mes.
+ */
+function fechaDelMes(dia: number): string {
+  const hoy = new Date();
+  const fecha = new Date(hoy.getFullYear(), hoy.getMonth(), dia);
+  return fecha.toISOString().slice(0, 10);
+}
 
 export type DashboardStats = {
   clientesActivos: number;
@@ -51,6 +65,7 @@ export const PROXIMAS_CITAS_MOCK: CitaAdmin[] = [
     clienteId: "cl1",
     clienteNombre: "María Fernández",
     clienteIniciales: "MF",
+    fecha: fechaDelMes(3),
     hora: "09:00 AM",
     modalidad: "Presencial",
     estado: "confirmada",
@@ -60,6 +75,7 @@ export const PROXIMAS_CITAS_MOCK: CitaAdmin[] = [
     clienteId: "cl2",
     clienteNombre: "Luis Ortega",
     clienteIniciales: "LO",
+    fecha: fechaDelMes(3),
     hora: "11:00 AM",
     modalidad: "Virtual",
     estado: "confirmada",
@@ -69,6 +85,7 @@ export const PROXIMAS_CITAS_MOCK: CitaAdmin[] = [
     clienteId: "cl3",
     clienteNombre: "Carla Núñez",
     clienteIniciales: "CN",
+    fecha: fechaDelMes(8),
     hora: "02:30 PM",
     modalidad: "Virtual",
     estado: "pendiente",
@@ -78,6 +95,7 @@ export const PROXIMAS_CITAS_MOCK: CitaAdmin[] = [
     clienteId: "cl4",
     clienteNombre: "Roberto Peña",
     clienteIniciales: "RP",
+    fecha: fechaDelMes(15),
     hora: "04:00 PM",
     modalidad: "Presencial",
     estado: "pendiente",
@@ -142,6 +160,7 @@ export const TODAS_CITAS_MOCK: CitaAdmin[] = [
     clienteId: "cl5",
     clienteNombre: "Ana Vargas",
     clienteIniciales: "AV",
+    fecha: fechaDelMes(15),
     hora: "10:00 AM",
     modalidad: "Virtual",
     estado: "confirmada",
@@ -151,6 +170,7 @@ export const TODAS_CITAS_MOCK: CitaAdmin[] = [
     clienteId: "cl6",
     clienteNombre: "Miguel Castillo",
     clienteIniciales: "MC",
+    fecha: fechaDelMes(22),
     hora: "05:30 PM",
     modalidad: "Presencial",
     estado: "pendiente",
@@ -163,4 +183,16 @@ export function formatIngresos(valor: number): string {
     currency: "DOP",
     maximumFractionDigits: 0,
   }).format(valor);
+}
+
+/** "2026-08-15" -> "15 ago" */
+export function formatFechaCorta(fechaIso: string): string {
+  const [y, m, d] = fechaIso.split("-").map(Number);
+  const fecha = new Date(y, m - 1, d);
+  return new Intl.DateTimeFormat("es-DO", { day: "numeric", month: "short" }).format(fecha);
+}
+
+/** Fecha ISO (YYYY-MM-DD) del día de hoy, para comparar próximas vs. historial. */
+export function fechaHoyIso(): string {
+  return new Date().toISOString().slice(0, 10);
 }
