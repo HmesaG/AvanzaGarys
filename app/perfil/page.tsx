@@ -1,38 +1,54 @@
 "use client";
 
+// Perfil del cliente — Entrega 2: los datos vienen de `/api/cliente/perfil` y la
+// edición hace PATCH sobre `Cliente`/`Usuario`. Cerrar sesión invalida la sesión
+// real en Redis vía `/api/auth/logout`.
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { User, Phone, Mail, Pencil, LogOut, Briefcase, X } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import TextField from "@/components/TextField";
-import SelectField from "@/components/SelectField";
 import {
-  getClienteState,
-  saveRegistro,
-  clearClienteState,
+  actualizarPerfil,
+  obtenerPerfil,
   tipoAsesoriaLabel,
-  type RegistroCliente,
-} from "@/lib/client-state";
-import { TIPOS_ASESORIA, type TipoAsesoria } from "@/lib/mock-data";
+  type PerfilCliente,
+} from "@/lib/cliente-api";
 import { erpAlert, successToast } from "@/lib/alerts";
+
+type FormState = {
+  telefono: string;
+  correo: string;
+};
 
 export default function PerfilPage() {
   const router = useRouter();
-  const [registro, setRegistro] = useState<RegistroCliente | null>(null);
+  const [perfil, setPerfil] = useState<PerfilCliente | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
   const [editando, setEditando] = useState(false);
-  const [form, setForm] = useState<RegistroCliente | null>(null);
+  const [form, setForm] = useState<FormState | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    setRegistro(getClienteState().registro);
+    async function cargar() {
+      try {
+        setPerfil(await obtenerPerfil());
+        setError(false);
+      } catch {
+        setError(true);
+      } finally {
+        setCargando(false);
+      }
+    }
+    void cargar();
   }, []);
 
   function handleEmpezarEdicion() {
-    if (!registro) return;
-    setForm(registro);
+    if (!perfil) return;
+    setForm({ telefono: perfil.telefono, correo: perfil.correo });
     setEditando(true);
   }
 
@@ -41,25 +57,28 @@ export default function PerfilPage() {
     setEditando(false);
   }
 
-  function handleChange<K extends keyof RegistroCliente>(
-    field: K,
-    value: RegistroCliente[K]
-  ) {
+  function handleChange<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => (prev ? { ...prev, [field]: value } : prev));
   }
 
-  function handleGuardar(e: FormEvent) {
+  async function handleGuardar(e: FormEvent) {
     e.preventDefault();
     if (!form) return;
 
     setGuardando(true);
-    window.setTimeout(() => {
-      saveRegistro(form);
-      setRegistro(form);
-      setGuardando(false);
+    try {
+      setPerfil(await actualizarPerfil(form));
       setEditando(false);
+      setForm(null);
       successToast("Perfil actualizado");
-    }, 350);
+    } catch (err) {
+      erpAlert.fire({
+        icon: "error",
+        title: err instanceof Error ? err.message : "No se pudo actualizar el perfil",
+      });
+    } finally {
+      setGuardando(false);
+    }
   }
 
   async function handleCerrarSesion() {
@@ -74,7 +93,11 @@ export default function PerfilPage() {
     });
     if (!result.isConfirmed) return;
 
-    clearClienteState();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Aunque falle la revocación en el servidor, se saca al usuario de la app.
+    }
     router.push("/login");
   }
 
@@ -83,32 +106,14 @@ export default function PerfilPage() {
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
         <BackHeader title="Perfil" subtitle="Tu información y preferencias" />
 
-        {!registro ? (
-          <section className="rounded-2xl border border-dashed border-gray-300 bg-white p-5 text-center">
-            <p className="text-sm font-semibold text-gray-900">
-              Aún no tienes datos registrados
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              Completa tu registro para ver tu perfil aquí.
-            </p>
-            <Link
-              href="/registro"
-              className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-avanza-green px-5 font-semibold text-white transition-all duration-150 hover:bg-avanza-green-dark active:scale-[0.98]"
-            >
-              Ir a registro
-            </Link>
-          </section>
+        {cargando ? (
+          <p className="mt-10 text-center text-sm text-gray-500">Cargando tu perfil...</p>
+        ) : error || !perfil ? (
+          <p className="mt-10 text-center text-sm text-gray-500">
+            No se pudo cargar tu perfil. Intenta de nuevo más tarde.
+          </p>
         ) : editando && form ? (
           <form noValidate onSubmit={handleGuardar} className="space-y-5">
-            <TextField
-              id="nombreCompleto"
-              label="Nombre completo"
-              icon={User}
-              autoComplete="name"
-              required
-              value={form.nombreCompleto}
-              onChange={(e) => handleChange("nombreCompleto", e.target.value)}
-            />
             <TextField
               id="telefono"
               label="Teléfono"
@@ -128,17 +133,6 @@ export default function PerfilPage() {
               required
               value={form.correo}
               onChange={(e) => handleChange("correo", e.target.value)}
-            />
-            <SelectField
-              id="tipoAsesoria"
-              label="Línea de asesoría"
-              placeholder="Selecciona una opción"
-              options={TIPOS_ASESORIA.map((t) => ({ value: t.id, label: t.label }))}
-              value={form.tipoAsesoria}
-              onChange={(value) =>
-                handleChange("tipoAsesoria", value as TipoAsesoria | "")
-              }
-              required
             />
 
             <div className="flex gap-3">
@@ -174,7 +168,7 @@ export default function PerfilPage() {
                 <button
                   type="button"
                   onClick={handleEmpezarEdicion}
-                  aria-label="Editar datos personales"
+                  aria-label="Editar datos de contacto"
                   className="flex h-9 w-9 items-center justify-center rounded-full text-avanza-green transition-colors duration-150 hover:bg-avanza-green-light active:scale-95"
                 >
                   <Pencil className="h-4 w-4" aria-hidden="true" />
@@ -186,21 +180,19 @@ export default function PerfilPage() {
                   <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">
                     Nombre
                   </dt>
-                  <dd className="mt-0.5 text-sm text-gray-900">
-                    {registro.nombreCompleto}
-                  </dd>
+                  <dd className="mt-0.5 text-sm text-gray-900">{perfil.nombreCompleto}</dd>
                 </div>
                 <div>
                   <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">
                     Correo electrónico
                   </dt>
-                  <dd className="mt-0.5 text-sm text-gray-900">{registro.correo}</dd>
+                  <dd className="mt-0.5 text-sm text-gray-900">{perfil.correo}</dd>
                 </div>
                 <div>
                   <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">
                     Teléfono
                   </dt>
-                  <dd className="mt-0.5 text-sm text-gray-900">{registro.telefono}</dd>
+                  <dd className="mt-0.5 text-sm text-gray-900">{perfil.telefono}</dd>
                 </div>
               </dl>
             </section>
@@ -214,7 +206,7 @@ export default function PerfilPage() {
                 Línea de asesoría
               </p>
               <span className="inline-flex items-center rounded-full bg-avanza-green-light px-3 py-1.5 text-sm font-medium text-avanza-green-dark">
-                {tipoAsesoriaLabel(registro.tipoAsesoria)}
+                {tipoAsesoriaLabel(perfil.tipoAsesoria)}
               </span>
             </section>
 

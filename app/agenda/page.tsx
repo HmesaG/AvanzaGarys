@@ -1,64 +1,76 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+// Agenda del cliente — Entrega 2: las sesiones son filas de `citas` en la base,
+// leídas y escritas por `/api/cliente/citas`. El permiso para agendar
+// (consentimiento aceptado + pago registrado) lo decide el servidor.
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar, Clock, Laptop, MapPin, CheckCircle2, Lock, X } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import {
-  getClienteState,
-  saveSesion,
-  clearSesion,
-  puedeAgendar,
-  type ClienteState,
-  type SesionAgendada,
-} from "@/lib/client-state";
+  agendarCita,
+  cancelarCita,
+  fechaLabel,
+  obtenerCitas,
+  type CitaCliente,
+  type ModalidadLabel,
+} from "@/lib/cliente-api";
 import { HORARIOS_DISPONIBLES } from "@/lib/mock-data";
 import { erpAlert, successToast } from "@/lib/alerts";
 
 const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
+
+/** ISO corto en hora local: `toISOString()` corre un día en zonas negativas. */
+function isoLocal(fecha: Date): string {
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${fecha.getFullYear()}-${mes}-${dia}`;
+}
 
 function buildDias(count: number) {
   const hoy = new Date();
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(hoy);
     d.setDate(hoy.getDate() + i);
+    const key = isoLocal(d);
     return {
-      key: d.toISOString().slice(0, 10),
+      key,
       diaSemana: DIAS[d.getDay()],
       diaMes: d.getDate(),
-      label: `${d.getDate() === hoy.getDate() ? "Hoy" : capitalize(DIAS_LARGO[d.getDay()])} ${d.getDate()} de ${MESES[d.getMonth()]}`,
+      label: fechaLabel(key),
     };
   });
 }
 
-const DIAS_LARGO = [
-  "domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado",
-];
-
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 export default function AgendaPage() {
   const dias = useMemo(() => buildDias(14), []);
-  const [sesionActual, setSesionActual] = useState<SesionAgendada | null>(null);
+  const [sesionActual, setSesionActual] = useState<CitaCliente | null>(null);
+  const [puedeAgendar, setPuedeAgendar] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
   const [diaSeleccionado, setDiaSeleccionado] = useState(dias[0].key);
   const [horaSeleccionada, setHoraSeleccionada] = useState<string | null>(null);
-  const [modalidad, setModalidad] = useState<"Virtual" | "Presencial">("Virtual");
+  const [modalidad, setModalidad] = useState<ModalidadLabel>("Virtual");
   const [confirmando, setConfirmando] = useState(false);
-  const [clienteState, setClienteState] = useState<ClienteState | null>(null);
+
+  const cargarAgenda = useCallback(async () => {
+    try {
+      const datos = await obtenerCitas();
+      setSesionActual(datos.citas[0] ?? null);
+      setPuedeAgendar(datos.puedeAgendar);
+      setError(false);
+    } catch {
+      setError(true);
+    } finally {
+      setCargando(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const state = getClienteState();
-    setClienteState(state);
-    setSesionActual(state.sesion);
-  }, []);
+    void cargarAgenda();
+  }, [cargarAgenda]);
 
   async function handleConfirmar() {
     if (!horaSeleccionada) return;
@@ -75,21 +87,27 @@ export default function AgendaPage() {
     if (!result.isConfirmed) return;
 
     setConfirmando(true);
-    const sesion: SesionAgendada = {
-      fechaLabel: dia.label,
-      hora: horaSeleccionada,
-      modalidad,
-    };
-    window.setTimeout(() => {
-      saveSesion(sesion);
-      setSesionActual(sesion);
+    try {
+      const cita = await agendarCita({
+        fecha: dia.key,
+        hora: horaSeleccionada,
+        modalidad,
+      });
+      setSesionActual(cita);
       setHoraSeleccionada(null);
-      setConfirmando(false);
       successToast("Sesión agendada");
-    }, 350);
+    } catch (err) {
+      erpAlert.fire({
+        icon: "error",
+        title: err instanceof Error ? err.message : "No se pudo agendar la sesión",
+      });
+    } finally {
+      setConfirmando(false);
+    }
   }
 
   async function handleCancelar() {
+    if (!sesionActual) return;
     const result = await erpAlert.fire({
       icon: "warning",
       title: "¿Cancelar la sesión agendada?",
@@ -100,12 +118,35 @@ export default function AgendaPage() {
       confirmButtonColor: "#dc2626",
     });
     if (!result.isConfirmed) return;
-    clearSesion();
-    setSesionActual(null);
-    successToast("Sesión cancelada");
+
+    try {
+      await cancelarCita(sesionActual.id);
+      setSesionActual(null);
+      successToast("Sesión cancelada");
+    } catch (err) {
+      erpAlert.fire({
+        icon: "error",
+        title: err instanceof Error ? err.message : "No se pudo cancelar la sesión",
+      });
+    }
   }
 
-  if (clienteState && !puedeAgendar(clienteState)) {
+  if (cargando || error) {
+    return (
+      <PageTransition footer={<BottomNav />}>
+        <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
+          <BackHeader title="Agenda" subtitle="Reserva o revisa tu próxima sesión" />
+          <p className="mt-10 text-center text-sm text-gray-500">
+            {cargando
+              ? "Cargando tu agenda..."
+              : "No se pudo cargar tu agenda. Intenta de nuevo más tarde."}
+          </p>
+        </main>
+      </PageTransition>
+    );
+  }
+
+  if (!puedeAgendar) {
     return (
       <PageTransition footer={<BottomNav />}>
         <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
@@ -150,9 +191,11 @@ export default function AgendaPage() {
             <div>
               <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-avanza-green-light">
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                Sesión confirmada
+                {sesionActual.estado === "confirmada"
+                  ? "Sesión confirmada"
+                  : "Sesión por confirmar"}
               </p>
-              <p className="mt-2 text-lg font-bold">{sesionActual.fechaLabel}</p>
+              <p className="mt-2 text-lg font-bold">{fechaLabel(sesionActual.fecha)}</p>
               <p className="text-sm text-avanza-green-light">
                 {sesionActual.hora} · {sesionActual.modalidad}
               </p>

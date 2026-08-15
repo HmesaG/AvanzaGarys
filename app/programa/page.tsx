@@ -4,7 +4,10 @@
 // coach, asignación de programa, consentimiento/contrato y pago. Una sola
 // pantalla con secciones que se van habilitando a medida que el cliente
 // avanza — evita fragmentar en rutas nuevas por cada paso.
-import { useEffect, useState } from "react";
+//
+// Entrega 2: el estado ya no sale de localStorage sino de `/api/cliente/estado`;
+// aceptar el consentimiento y registrar el pago escriben en la base.
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,33 +25,48 @@ import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import SelectField from "@/components/SelectField";
 import {
-  getClienteState,
-  saveConsentimiento,
-  savePago,
-  puedeAgendar,
-  type ClienteState,
-  type MetodoPago,
-} from "@/lib/client-state";
+  aceptarConsentimiento,
+  obtenerEstado,
+  registrarPago,
+  type EstadoCliente,
+  type MetodoPagoLabel,
+} from "@/lib/cliente-api";
 import { formatIngresos } from "@/lib/admin-mock-data";
 import { erpAlert, successToast } from "@/lib/alerts";
 
-const METODOS: { value: MetodoPago; label: string }[] = [
+const METODOS: { value: MetodoPagoLabel; label: string }[] = [
   { value: "Tarjeta", label: "Tarjeta" },
   { value: "Transferencia", label: "Transferencia" },
 ];
 
+const METODO_LABEL: Record<string, string> = {
+  TARJETA: "Tarjeta",
+  TRANSFERENCIA: "Transferencia",
+};
+
 export default function ProgramaPage() {
   const router = useRouter();
-  const [state, setState] = useState<ClienteState | null>(null);
+  const [estado, setEstado] = useState<EstadoCliente | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
   const [aceptoTerminos, setAceptoTerminos] = useState(false);
-  const [metodo, setMetodo] = useState<MetodoPago>("Tarjeta");
+  const [metodo, setMetodo] = useState<MetodoPagoLabel>("Tarjeta");
   const [procesando, setProcesando] = useState(false);
 
-  useEffect(() => {
-    setState(getClienteState());
+  const cargarEstado = useCallback(async () => {
+    try {
+      setEstado(await obtenerEstado());
+      setError(false);
+    } catch {
+      setError(true);
+    } finally {
+      setCargando(false);
+    }
   }, []);
 
-  if (!state) return null;
+  useEffect(() => {
+    void cargarEstado();
+  }, [cargarEstado]);
 
   async function handleAceptarConsentimiento() {
     if (!aceptoTerminos) return;
@@ -63,20 +81,26 @@ export default function ProgramaPage() {
     if (!result.isConfirmed) return;
 
     setProcesando(true);
-    window.setTimeout(() => {
-      saveConsentimiento();
-      setState(getClienteState());
-      setProcesando(false);
+    try {
+      await aceptarConsentimiento();
+      await cargarEstado();
       successToast("Consentimiento registrado");
-    }, 350);
+    } catch (err) {
+      erpAlert.fire({
+        icon: "error",
+        title: err instanceof Error ? err.message : "No se pudo registrar el consentimiento",
+      });
+    } finally {
+      setProcesando(false);
+    }
   }
 
   async function handleRegistrarPago() {
-    if (!state || !state.pago) return;
+    if (!estado?.pago) return;
     const result = await erpAlert.fire({
       icon: "question",
       title: "¿Registrar pago?",
-      html: `<p class="text-sm text-gray-600">${formatIngresos(state.pago.monto)} · ${metodo}</p>`,
+      html: `<p class="text-sm text-gray-600">${formatIngresos(estado.pago.monto)} · ${metodo}</p>`,
       showCancelButton: true,
       confirmButtonText: "Confirmar pago",
       cancelButtonText: "Cancelar",
@@ -84,15 +108,24 @@ export default function ProgramaPage() {
     if (!result.isConfirmed) return;
 
     setProcesando(true);
-    window.setTimeout(() => {
-      savePago(metodo);
-      setState(getClienteState());
-      setProcesando(false);
+    try {
+      await registrarPago(metodo);
+      await cargarEstado();
       successToast("Pago registrado");
-    }, 350);
+    } catch (err) {
+      erpAlert.fire({
+        icon: "error",
+        title: err instanceof Error ? err.message : "No se pudo registrar el pago",
+      });
+    } finally {
+      setProcesando(false);
+    }
   }
 
-  const { evaluacion, estadoEvaluacion, programaAsignado, consentimiento, pago } = state;
+  const evaluacion = estado?.evaluacion ?? null;
+  const programaAsignado = estado?.programaAsignado ?? null;
+  const consentimiento = estado?.consentimiento ?? null;
+  const pago = estado?.pago ?? null;
 
   return (
     <PageTransition footer={<BottomNav />}>
@@ -102,7 +135,13 @@ export default function ProgramaPage() {
           subtitle="Aprobación, programa, contrato y pago"
         />
 
-        {!evaluacion ? (
+        {cargando ? (
+          <p className="mt-10 text-center text-sm text-gray-500">Cargando tu programa...</p>
+        ) : error || !estado ? (
+          <p className="mt-10 text-center text-sm text-gray-500">
+            No se pudo cargar tu programa. Intenta de nuevo más tarde.
+          </p>
+        ) : !evaluacion ? (
           <section className="rounded-2xl border border-dashed border-gray-300 bg-white p-5 text-center">
             <p className="text-sm font-semibold text-gray-900">
               Aún no completaste tu evaluación inicial
@@ -117,7 +156,7 @@ export default function ProgramaPage() {
               Ir a evaluación
             </Link>
           </section>
-        ) : estadoEvaluacion === "pendiente" || !estadoEvaluacion ? (
+        ) : evaluacion.estado === "PENDIENTE" ? (
           <section
             aria-label="Evaluación en revisión"
             className="flex flex-col items-center rounded-2xl border border-gray-200 bg-white p-6 text-center"
@@ -133,7 +172,7 @@ export default function ProgramaPage() {
               más adecuado. Te avisaremos apenas esté lista.
             </p>
           </section>
-        ) : estadoEvaluacion === "rechazada" ? (
+        ) : evaluacion.estado === "RECHAZADA" ? (
           <section
             aria-label="Evaluación rechazada"
             className="flex flex-col items-center rounded-2xl border border-red-200 bg-white p-6 text-center"
@@ -251,10 +290,10 @@ export default function ProgramaPage() {
                 <p className="text-sm text-gray-500">
                   Disponible después de aceptar el consentimiento.
                 </p>
-              ) : pago?.estado === "pagado" ? (
+              ) : pago?.estado === "PAGADO" ? (
                 <p className="flex items-center gap-1.5 text-sm text-avanza-green-dark">
                   <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Pagado ({pago.metodo}) el{" "}
+                  Pagado ({METODO_LABEL[pago.metodo] ?? pago.metodo}) el{" "}
                   {pago.fecha && new Date(pago.fecha).toLocaleDateString("es-DO")}
                 </p>
               ) : (
@@ -272,7 +311,7 @@ export default function ProgramaPage() {
                       placeholder="Selecciona un método"
                       options={METODOS}
                       value={metodo}
-                      onChange={(v) => setMetodo(v as MetodoPago)}
+                      onChange={(v) => setMetodo(v as MetodoPagoLabel)}
                       required
                     />
                   </div>
@@ -288,7 +327,7 @@ export default function ProgramaPage() {
               )}
             </section>
 
-            {puedeAgendar(state) && (
+            {estado.puedeAgendar && (
               <button
                 type="button"
                 onClick={() => router.push("/agenda")}

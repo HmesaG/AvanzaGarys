@@ -1,66 +1,65 @@
 "use client";
 
+// Entrega 2: el hilo son filas de `mensajes` en la base, leídas y escritas por
+// `/api/cliente/mensajes`. Se cayó la respuesta automática del asesor que
+// simulaba el mock: escribir mensajes falsos de un asesor real en la base sería
+// dato inventado, no una simulación de UI. Sigue sin haber tiempo real (sin
+// websockets): el hilo se refresca al entrar y al enviar.
 import { useEffect, useRef, useState, FormEvent } from "react";
 import { Send } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
-import { ASESOR_MOCK, MENSAJES_INICIALES, type Mensaje } from "@/lib/mock-data";
-
-function horaActual() {
-  return new Date().toLocaleTimeString("es-DO", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-// Respuestas simuladas — no hay tiempo real (sin websockets, decisión de arquitectura Fase 1).
-const RESPUESTAS_MOCK = [
-  "Recibido, gracias por contarme.",
-  "Perfecto, seguimos avanzando en la próxima sesión.",
-  "Anotado. ¿Necesitas algo más por ahora?",
-];
+import {
+  enviarMensaje,
+  horaLabel,
+  obtenerMensajes,
+  type MensajeCliente,
+} from "@/lib/cliente-api";
+import { ASESOR_MOCK } from "@/lib/mock-data";
+import { errorToast } from "@/lib/alerts";
 
 export default function MensajesPage() {
-  const [mensajes, setMensajes] = useState<Mensaje[]>(MENSAJES_INICIALES);
+  const [mensajes, setMensajes] = useState<MensajeCliente[]>([]);
   const [texto, setTexto] = useState("");
-  const [asesorEscribiendo, setAsesorEscribiendo] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [mensajes, asesorEscribiendo]);
+    async function cargar() {
+      try {
+        setMensajes(await obtenerMensajes());
+        setError(false);
+      } catch {
+        setError(true);
+      } finally {
+        setCargando(false);
+      }
+    }
+    void cargar();
+  }, []);
 
-  function handleSubmit(e: FormEvent) {
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+  }, [mensajes]);
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const contenido = texto.trim();
-    if (!contenido) return;
+    if (!contenido || enviando) return;
 
-    const nuevoMensaje: Mensaje = {
-      id: `local-${Date.now()}`,
-      de: "cliente",
-      texto: contenido,
-      hora: horaActual(),
-    };
-    setMensajes((prev) => [...prev, nuevoMensaje]);
-    setTexto("");
-
-    setAsesorEscribiendo(true);
-    window.setTimeout(() => {
-      const respuesta =
-        RESPUESTAS_MOCK[Math.floor(Math.random() * RESPUESTAS_MOCK.length)];
-      setMensajes((prev) => [
-        ...prev,
-        {
-          id: `asesor-${Date.now()}`,
-          de: "asesor",
-          texto: respuesta,
-          hora: horaActual(),
-        },
-      ]);
-      setAsesorEscribiendo(false);
-    }, 1200);
+    setEnviando(true);
+    try {
+      const mensaje = await enviarMensaje(contenido);
+      setMensajes((prev) => [...prev, mensaje]);
+      setTexto("");
+    } catch (err) {
+      errorToast(err instanceof Error ? err.message : "No se pudo enviar el mensaje");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -79,6 +78,21 @@ export default function MensajesPage() {
           aria-label="Conversación con tu asesor"
           className="flex-1 space-y-3 overflow-y-auto pb-32"
         >
+          {cargando && (
+            <li className="py-10 text-center text-sm text-gray-500">
+              Cargando conversación...
+            </li>
+          )}
+          {!cargando && error && (
+            <li className="py-10 text-center text-sm text-gray-500">
+              No se pudo cargar la conversación. Intenta de nuevo más tarde.
+            </li>
+          )}
+          {!cargando && !error && mensajes.length === 0 && (
+            <li className="py-10 text-center text-sm text-gray-500">
+              Todavía no hay mensajes. Escribe el primero.
+            </li>
+          )}
           {mensajes.map((m) => {
             const esCliente = m.de === "cliente";
             return (
@@ -99,24 +113,12 @@ export default function MensajesPage() {
                       esCliente ? "text-avanza-green-light" : "text-gray-400"
                     }`}
                   >
-                    {m.hora}
+                    {horaLabel(m.hora)}
                   </p>
                 </div>
               </li>
             );
           })}
-          {asesorEscribiendo && (
-            <li className="flex justify-start" aria-live="polite">
-              <div className="rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-4 py-3">
-                <span className="sr-only">{ASESOR_MOCK.nombre} está escribiendo</span>
-                <span className="flex gap-1" aria-hidden="true">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 [animation-delay:150ms]" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 [animation-delay:300ms]" />
-                </span>
-              </div>
-            </li>
-          )}
         </ul>
       </div>
 
@@ -139,7 +141,7 @@ export default function MensajesPage() {
           />
           <button
             type="submit"
-            disabled={!texto.trim()}
+            disabled={!texto.trim() || enviando}
             aria-label="Enviar mensaje"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-avanza-green text-white transition-all duration-150 hover:bg-avanza-green-dark active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           >

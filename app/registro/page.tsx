@@ -2,12 +2,12 @@
 
 import { useState, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { User, Phone, Mail, Cake } from "lucide-react";
+import { User, Phone, Mail, Cake, Lock } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import PageTransition from "@/components/PageTransition";
 import TextField from "@/components/TextField";
 import SelectField from "@/components/SelectField";
-import { saveRegistro } from "@/lib/client-state";
+import { registrarCliente } from "@/lib/cliente-api";
 import { TIPOS_ASESORIA, type TipoAsesoria } from "@/lib/mock-data";
 import { successToast } from "@/lib/alerts";
 
@@ -17,6 +17,7 @@ type FormState = {
   correo: string;
   edad: string;
   tipoAsesoria: TipoAsesoria | "";
+  password: string;
 };
 
 type Errors = Partial<Record<keyof FormState, string>>;
@@ -27,6 +28,7 @@ const initialForm: FormState = {
   correo: "",
   edad: "",
   tipoAsesoria: "",
+  password: "",
 };
 
 const TIPOS_VALIDOS = new Set(TIPOS_ASESORIA.map((t) => t.id));
@@ -58,6 +60,12 @@ function validateField(name: keyof FormState, value: string): string | undefined
     case "tipoAsesoria":
       if (!value) return "Selecciona una línea de asesoría";
       return undefined;
+    case "password":
+      if (!value) return "Elige una contraseña";
+      // Mismo mínimo que valida el endpoint; si acá fuera menor, el servidor
+      // rechazaría con un error genérico y el usuario no sabría por qué.
+      if (value.length < 8) return "Usa al menos 8 caracteres";
+      return undefined;
     default:
       return undefined;
   }
@@ -72,6 +80,7 @@ function RegistroForm() {
   }));
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
   function handleChange<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -82,8 +91,9 @@ function RegistroForm() {
     setErrors((prev) => ({ ...prev, [field]: error }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setErrorGeneral(null);
 
     const nextErrors: Errors = {};
     (Object.keys(form) as (keyof FormState)[]).forEach((field) => {
@@ -95,12 +105,18 @@ function RegistroForm() {
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
-    saveRegistro(form);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    try {
+      // El alta crea Usuario + Cliente y deja la sesión iniciada, así que se
+      // puede ir directo a la evaluación (ruta ya protegida por el middleware).
+      await registrarCliente(form);
       successToast("Registro guardado");
       router.push("/evaluacion");
-    }, 400);
+    } catch (error) {
+      setErrorGeneral(
+        error instanceof Error ? error.message : "No se pudo completar el registro",
+      );
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -191,6 +207,27 @@ function RegistroForm() {
               <p className="mt-1.5 text-sm text-red-600">{errors.tipoAsesoria}</p>
             )}
           </div>
+
+          <TextField
+            id="password"
+            label="Contraseña"
+            icon={Lock}
+            type="password"
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+            required
+            aria-required="true"
+            value={form.password}
+            onChange={(e) => handleChange("password", e.target.value)}
+            onBlur={() => handleBlur("password")}
+            error={errors.password}
+          />
+
+          {errorGeneral && (
+            <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {errorGeneral}
+            </p>
+          )}
 
           <button
             type="submit"

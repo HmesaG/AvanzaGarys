@@ -17,18 +17,21 @@ import {
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import {
-  getClienteState,
-  puedeAgendar,
+  fechaLabel,
+  obtenerEstado,
   tipoAsesoriaLabel,
-  type ClienteState,
-} from "@/lib/client-state";
+  type EstadoCliente,
+} from "@/lib/cliente-api";
 import { OBJETIVO_PRINCIPAL_MOCK, PROGRESO_MOCK } from "@/lib/mock-data";
 
 const ACCESOS = [
   {
-    href: "/registro",
-    label: "Registro",
-    desc: "Tus datos",
+    // Antes apuntaba a `/registro`. Con sesión real, ese formulario crea una
+    // cuenta nueva: el acceso de "tus datos" para alguien ya registrado es su
+    // perfil.
+    href: "/perfil",
+    label: "Mis datos",
+    desc: "Perfil y contacto",
     icon: ClipboardList,
     color: "text-avanza-green",
     bg: "bg-avanza-green-light",
@@ -68,14 +71,24 @@ const ACCESOS = [
 ] as const;
 
 export default function HomePage() {
-  const [state, setState] = useState<ClienteState | null>(null);
+  const [estado, setEstado] = useState<EstadoCliente | null>(null);
 
   useEffect(() => {
-    setState(getClienteState());
+    async function cargar() {
+      try {
+        setEstado(await obtenerEstado());
+      } catch {
+        // El resumen degrada a los textos por defecto: la home nunca queda en
+        // blanco por un fallo de red.
+      }
+    }
+    void cargar();
   }, []);
 
-  const nombre = state?.registro?.nombreCompleto?.split(" ")[0];
-  const tipo = state?.registro?.tipoAsesoria;
+  const nombre = estado?.perfil.nombreCompleto.split(" ")[0];
+  const tipo = estado?.perfil.tipoAsesoria;
+  const proximaCita = estado?.proximaCita ?? null;
+  const objetivo = estado?.evaluacion?.objetivoPrincipal ?? OBJETIVO_PRINCIPAL_MOCK;
 
   return (
     <PageTransition footer={<BottomNav />}>
@@ -95,7 +108,7 @@ export default function HomePage() {
 
         {/* Próxima sesión */}
         <section aria-label="Próxima sesión" className="mb-4">
-          {state?.sesion ? (
+          {proximaCita ? (
             <Link
               href="/agenda"
               className="block rounded-2xl bg-avanza-green p-5 text-white shadow-sm transition-transform duration-150 active:scale-[0.98]"
@@ -107,10 +120,10 @@ export default function HomePage() {
                     Próxima sesión
                   </p>
                   <p className="mt-2 text-lg font-bold">
-                    {state.sesion.fechaLabel}
+                    {fechaLabel(proximaCita.fecha)}
                   </p>
                   <p className="text-sm text-avanza-green-light">
-                    {state.sesion.hora} · {state.sesion.modalidad}
+                    {proximaCita.hora} · {proximaCita.modalidad}
                   </p>
                 </div>
                 <ArrowRight className="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -168,7 +181,7 @@ export default function HomePage() {
             />
           </div>
           <p className="mt-3 text-sm text-gray-600">
-            Objetivo: <span className="font-medium text-gray-900">{OBJETIVO_PRINCIPAL_MOCK}</span>
+            Objetivo: <span className="font-medium text-gray-900">{objetivo}</span>
           </p>
         </section>
 

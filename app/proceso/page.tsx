@@ -5,7 +5,7 @@ import { CheckSquare, Square, Target, TrendingUp } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
-import { getClienteState } from "@/lib/client-state";
+import { obtenerEstado } from "@/lib/cliente-api";
 import {
   OBJETIVO_PRINCIPAL_MOCK,
   PROGRESO_MOCK,
@@ -19,8 +19,17 @@ export default function ProcesoPage() {
   const [objetivo, setObjetivo] = useState(OBJETIVO_PRINCIPAL_MOCK);
 
   useEffect(() => {
-    const evaluacion = getClienteState().evaluacion;
-    if (evaluacion?.objetivoPrincipal) setObjetivo(evaluacion.objetivoPrincipal);
+    // El objetivo real sale de la evaluación del cliente; si todavía no la envió
+    // (o falla la lectura), queda el texto de ejemplo que ya se mostraba.
+    async function cargarObjetivo() {
+      try {
+        const { evaluacion } = await obtenerEstado();
+        if (evaluacion?.objetivoPrincipal) setObjetivo(evaluacion.objetivoPrincipal);
+      } catch {
+        // Sin datos reales, se conserva el objetivo por defecto.
+      }
+    }
+    void cargarObjetivo();
   }, []);
 
   const completadas = tareas.filter((t) => t.completada).length;

@@ -32,10 +32,12 @@ const SESSION_COOKIE = "avanza_session";
 /**
  * Rutas del área privada del cliente.
  *
- * `/registro`, `/evaluacion`, `/programa` y `/agenda` quedan fuera a propósito:
- * son el flujo de alta (registro -> evaluación -> programa -> agendar primera
- * cita), que en esta entrega sigue viviendo en localStorage sin sesión. Se
- * protegerán en la Entrega 2, cuando ese flujo pase a la API real.
+ * Desde la Entrega 2, `/evaluacion`, `/programa` y `/agenda` también exigen
+ * sesión: el registro ya crea la sesión real, así que todo el flujo posterior
+ * (evaluación -> programa -> agendar) trabaja contra `/api/cliente/*`.
+ *
+ * `/registro` queda fuera a propósito: es la única puerta de alta pública y
+ * tiene que ser accesible sin sesión.
  */
 export function middleware(request: NextRequest) {
   const tieneCookie = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
@@ -53,5 +55,8 @@ export const config = {
     "/proceso/:path*",
     "/mensajes/:path*",
     "/perfil/:path*",
+    "/evaluacion/:path*",
+    "/programa/:path*",
+    "/agenda/:path*",
   ],
 };

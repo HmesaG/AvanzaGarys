@@ -6,7 +6,7 @@ import BackHeader from "@/components/BackHeader";
 import PageTransition from "@/components/PageTransition";
 import TextAreaField from "@/components/TextAreaField";
 import SelectField from "@/components/SelectField";
-import { saveEvaluacion } from "@/lib/client-state";
+import { enviarEvaluacion } from "@/lib/cliente-api";
 import { OPCIONES_TIEMPO } from "@/lib/mock-data";
 import { successToast } from "@/lib/alerts";
 
@@ -39,6 +39,7 @@ export default function EvaluacionPage() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
   function handleChange<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -48,8 +49,9 @@ export default function EvaluacionPage() {
     setErrors((prev) => ({ ...prev, [field]: validateField(field, form[field]) }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setErrorGeneral(null);
 
     const nextErrors: Errors = {};
     (Object.keys(form) as (keyof FormState)[]).forEach((field) => {
@@ -60,12 +62,16 @@ export default function EvaluacionPage() {
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
-    saveEvaluacion(form);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await enviarEvaluacion(form);
       successToast("Evaluación enviada para revisión");
       router.push("/programa");
-    }, 400);
+    } catch (error) {
+      setErrorGeneral(
+        error instanceof Error ? error.message : "No se pudo enviar la evaluación",
+      );
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -120,6 +126,12 @@ export default function EvaluacionPage() {
               <p className="mt-1.5 text-sm text-red-600">{errors.tiempoDeseado}</p>
             )}
           </div>
+
+          {errorGeneral && (
+            <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {errorGeneral}
+            </p>
+          )}
 
           <button
             type="submit"
