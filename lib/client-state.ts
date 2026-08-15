@@ -75,6 +75,11 @@ export function clearSesion() {
   setClienteState({ ...state, sesion: null });
 }
 
+// Cerrar sesión (mock) — limpia el estado local del cliente. Sin backend real que invalidar.
+export function clearClienteState() {
+  setClienteState(DEFAULT_STATE);
+}
+
 export function tipoAsesoriaLabel(tipo: TipoAsesoria | "" | undefined): string {
   switch (tipo) {
     case "personal":
