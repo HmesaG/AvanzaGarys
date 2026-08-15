@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Clock, Video, MapPin, List, CalendarDays } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
-import { TODAS_CITAS_MOCK, type CitaAdmin, type EstadoCita } from "@/lib/admin-mock-data";
+import type { CitaAdmin, EstadoCita } from "@/lib/admin-mock-data";
 
 const FILTROS: { id: EstadoCita | "todas"; label: string }[] = [
   { id: "todas", label: "Todas" },
@@ -73,11 +73,31 @@ export default function AdminCitasPage() {
   const [filtro, setFiltro] = useState<EstadoCita | "todas">("todas");
   const [vista, setVista] = useState<"lista" | "calendario">("lista");
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null);
+  const [citas, setCitas] = useState<CitaAdmin[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const res = await fetch("/api/admin/citas");
+        if (!res.ok) throw new Error("Error al cargar citas");
+        const { citas: lista } = (await res.json()) as { citas: CitaAdmin[] };
+        setCitas(lista);
+        setError(false);
+      } catch {
+        setError(true);
+      } finally {
+        setCargando(false);
+      }
+    }
+    void cargar();
+  }, []);
 
   const citasFiltradas = useMemo(() => {
-    if (filtro === "todas") return TODAS_CITAS_MOCK;
-    return TODAS_CITAS_MOCK.filter((c) => c.estado === filtro);
-  }, [filtro]);
+    if (filtro === "todas") return citas;
+    return citas.filter((c) => c.estado === filtro);
+  }, [filtro, citas]);
 
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
@@ -168,7 +188,13 @@ export default function AdminCitasPage() {
           ))}
         </div>
 
-        {vista === "lista" ? (
+        {cargando ? (
+          <p className="mt-10 text-center text-sm text-gray-500">Cargando citas...</p>
+        ) : error ? (
+          <p className="mt-10 text-center text-sm text-gray-500">
+            No se pudo cargar la agenda. Intenta de nuevo más tarde.
+          </p>
+        ) : vista === "lista" ? (
           citasFiltradas.length === 0 ? (
             <p className="mt-10 text-center text-sm text-gray-500">
               No hay citas en este filtro.

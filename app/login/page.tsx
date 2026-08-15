@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import TextField from "@/components/TextField";
 import { successToast } from "@/lib/alerts";
+
+/** Destino por defecto según el rol devuelto por la API. */
+const DESTINO_POR_ROL: Record<string, string> = {
+  ADMINISTRADOR: "/admin",
+  COACH: "/admin",
+  SECRETARIA: "/admin",
+  CLIENTE: "/home",
+};
 
 type FormState = {
   correo: string;
@@ -35,11 +43,29 @@ function validateField(name: keyof FormState, value: string): string | undefined
   }
 }
 
-export default function LoginPage() {
+/**
+ * El parámetro `?redirect=` lo controla quien arma el link, no la app. Sin este
+ * filtro, `/login?redirect=https://sitio-falso/` haría que tras un login exitoso
+ * el usuario aterrice en un sitio ajeno creyendo que sigue en Avanza (open
+ * redirect, base clásica de phishing). Solo se aceptan rutas internas: una barra
+ * inicial, y nunca `//` ni `/\` que el navegador interpreta como host externo.
+ */
+function destinoSeguro(valor: string | null): string | null {
+  if (!valor) return null;
+  if (!valor.startsWith("/")) return null;
+  if (valor.startsWith("//") || valor.startsWith("/\\")) return null;
+  return valor;
+}
+
+// `useSearchParams` obliga a un límite de Suspense para que la página pueda
+// seguir prerenderizándose de forma estática (ver LoginPage al final).
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
   function handleChange<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -50,8 +76,9 @@ export default function LoginPage() {
     setErrors((prev) => ({ ...prev, [field]: error }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setErrorGeneral(null);
 
     const nextErrors: Errors = {};
     (Object.keys(form) as (keyof FormState)[]).forEach((field) => {
@@ -62,13 +89,36 @@ export default function LoginPage() {
 
     if (Object.keys(nextErrors).length > 0) return;
 
-    // Sin backend real (Fase 1): cualquier submit con datos válidos se acepta como login mock.
     setSubmitting(true);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo: form.correo, password: form.password }),
+      });
+
+      if (!res.ok) {
+        setErrorGeneral(
+          res.status === 401
+            ? "Correo o contraseña incorrectos"
+            : res.status === 429
+              ? "Demasiados intentos. Espera unos minutos e inténtalo de nuevo."
+              : "No se pudo iniciar sesión. Intenta de nuevo.",
+        );
+        return;
+      }
+
+      const { usuario } = (await res.json()) as { usuario: { rol: string } };
       successToast("Sesión iniciada");
-      router.push("/home");
-    }, 400);
+
+      // Si el middleware nos mandó acá desde una ruta protegida, volvemos a ella.
+      const redirect = destinoSeguro(searchParams.get("redirect"));
+      router.replace(redirect || DESTINO_POR_ROL[usuario.rol] || "/home");
+    } catch {
+      setErrorGeneral("No se pudo conectar con el servidor.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -115,6 +165,12 @@ export default function LoginPage() {
             error={errors.password}
           />
 
+          {errorGeneral && (
+            <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {errorGeneral}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={submitting}
@@ -135,5 +191,13 @@ export default function LoginPage() {
         </p>
       </main>
     </PageTransition>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

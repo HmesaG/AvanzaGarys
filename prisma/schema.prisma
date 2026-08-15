@@ -1,0 +1,253 @@
+// Prisma schema — Avanza (Fase 3a: backend real sobre MariaDB)
+// Ver documentación de convenciones al final de este archivo.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Rol {
+  ADMINISTRADOR
+  COACH
+  SECRETARIA
+  CLIENTE
+}
+
+// Unifica las dos representaciones inconsistentes del mock
+// (TipoAsesoria minúscula en client-state/mock-data vs. LineaAsesoriaAdmin
+// capitalizada en admin-mock-data) en un único enum de base de datos.
+enum TipoAsesoria {
+  PERSONAL
+  CORPORATIVO
+  DEPORTIVO
+}
+
+enum EstadoEvaluacion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+enum MetodoPago {
+  TARJETA
+  TRANSFERENCIA
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+}
+
+enum Modalidad {
+  VIRTUAL
+  PRESENCIAL
+}
+
+enum EstadoCita {
+  CONFIRMADA
+  PENDIENTE
+}
+
+enum RemitenteMensaje {
+  CLIENTE
+  ASESOR
+}
+
+// ---------------------------------------------------------------------------
+// Modelos
+// ---------------------------------------------------------------------------
+
+model Usuario {
+  id           String   @id @default(cuid())
+  nombre       String
+  correo       String   @unique
+  passwordHash String   @map("password_hash")
+  rol          Rol
+  empresaId    String?  @map("empresa_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  empresa               Empresa?     @relation(fields: [empresaId], references: [id])
+  cliente               Cliente?
+  evaluacionesRevisadas Evaluacion[] @relation("EvaluacionRevisor")
+
+  @@index([rol])
+  @@map("usuarios")
+}
+
+model Empresa {
+  id        String   @id @default(cuid())
+  nombre    String
+  contacto  String
+  correo    String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  usuarios Usuario[]
+  clientes Cliente[]
+
+  @@map("empresas")
+}
+
+model Cliente {
+  id             String       @id @default(cuid())
+  usuarioId      String       @unique @map("usuario_id")
+  nombreCompleto String       @map("nombre_completo")
+  telefono       String
+  edad           Int
+  tipoAsesoria   TipoAsesoria @map("tipo_asesoria")
+  empresaId      String?      @map("empresa_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  usuario            Usuario            @relation(fields: [usuarioId], references: [id])
+  empresa            Empresa?           @relation(fields: [empresaId], references: [id])
+  evaluaciones       Evaluacion[]
+  programasAsignados ProgramaAsignado[]
+  consentimiento     Consentimiento?
+  pagos              Pago[]
+  citas              Cita[]
+  mensajes           Mensaje[]
+
+  @@index([tipoAsesoria])
+  @@map("clientes")
+}
+
+model Evaluacion {
+  id                  String           @id @default(cuid())
+  clienteId           String           @map("cliente_id")
+  objetivoPrincipal   String           @map("objetivo_principal") @db.Text
+  principalDificultad String           @map("principal_dificultad") @db.Text
+  tiempoDeseado       String           @map("tiempo_deseado")
+  estado              EstadoEvaluacion @default(PENDIENTE)
+  revisadaPorId       String?          @map("revisada_por_id")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  cliente            Cliente            @relation(fields: [clienteId], references: [id])
+  revisadaPor        Usuario?           @relation("EvaluacionRevisor", fields: [revisadaPorId], references: [id])
+  programasAsignados ProgramaAsignado[]
+
+  @@index([estado])
+  @@index([clienteId])
+  @@map("evaluaciones")
+}
+
+model Programa {
+  id                String       @id @default(cuid())
+  nombre            String
+  descripcion       String       @db.Text
+  sesionesIncluidas Int          @map("sesiones_incluidas")
+  tipoAsesoria      TipoAsesoria @map("tipo_asesoria")
+  precio            Decimal      @db.Decimal(10, 2)
+
+  asignaciones ProgramaAsignado[]
+
+  @@index([tipoAsesoria])
+  @@map("programas")
+}
+
+model ProgramaAsignado {
+  id           String   @id @default(cuid())
+  clienteId    String   @map("cliente_id")
+  programaId   String   @map("programa_id")
+  evaluacionId String   @map("evaluacion_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  cliente    Cliente    @relation(fields: [clienteId], references: [id])
+  programa   Programa   @relation(fields: [programaId], references: [id])
+  evaluacion Evaluacion @relation(fields: [evaluacionId], references: [id])
+
+  @@index([clienteId])
+  @@map("programas_asignados")
+}
+
+model Consentimiento {
+  id        String   @id @default(cuid())
+  clienteId String   @unique @map("cliente_id")
+  aceptado  Boolean  @default(false)
+  fecha     DateTime
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@map("consentimientos")
+}
+
+model Pago {
+  id        String     @id @default(cuid())
+  clienteId String     @map("cliente_id")
+  monto     Decimal    @db.Decimal(10, 2)
+  metodo    MetodoPago
+  estado    EstadoPago @default(PENDIENTE)
+  fecha     DateTime?
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@index([estado])
+  @@map("pagos")
+}
+
+model Cita {
+  id        String     @id @default(cuid())
+  clienteId String     @map("cliente_id")
+  fecha     DateTime   @db.Date
+  hora      String
+  modalidad Modalidad
+  estado    EstadoCita @default(PENDIENTE)
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([fecha])
+  @@index([clienteId])
+  @@map("citas")
+}
+
+model Mensaje {
+  id        String           @id @default(cuid())
+  clienteId String           @map("cliente_id")
+  de        RemitenteMensaje
+  texto     String           @db.Text
+  hora      DateTime
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@map("mensajes")
+}
+
+// ---------------------------------------------------------------------------
+// Notas de diseño para dev-senior
+// ---------------------------------------------------------------------------
+// - PKs: cuid() (String) en todos los modelos. Elegido sobre autoincrement
+//   porque varios IDs (Cliente, Usuario, Programa) se exponen en URLs/API del
+//   lado cliente y en la app admin; cuid evita enumeración secuencial y no
+//   requiere una vuelta a la DB para conocer el id antes de insertar relaciones
+//   hijas (útil en el flujo de registro -> evaluación -> programa -> pago).
+// - Convención de nombres de tabla/columna: snake_case vía @map/@@map (tablas
+//   en plural), nombres de modelo/campo en PascalCase/camelCase para el
+//   cliente Prisma.
+// - TipoAsesoria unifica "personal|corporativo|deportivo" (client-state.ts,
+//   mock-data.ts) y "Personal|Corporativo|Deportivo" (admin-mock-data.ts,
+//   LineaAsesoriaAdmin) en un solo enum en mayúsculas. dev-senior deberá
+//   mapear a los labels de UI actuales (ej. TIPOS_ASESORIA en mock-data.ts).
+// - Cliente.usuarioId es único: 1:1 con Usuario (rol CLIENTE). El registro
+//   público (RegistroCliente) crea Usuario + Cliente en la misma transacción.
+// - Evaluacion.estado por defecto PENDIENTE, igual al mock
+//   (saveEvaluacion siempre deja estadoEvaluacion: "pendiente").
+// - Pago.fecha es nullable (se llena recién cuando estado pasa a PAGADO),
+//   igual que el mock actual.
+// - Cita.hora se guarda como string libre ("09:00 AM") para no romper el
+//   formato ya usado en HORARIOS_DISPONIBLES; si más adelante se necesita
+//   ordenar/filtrar por hora real, considerar migrar a un campo Time o a
+//   fecha+hora combinados en un solo DateTime.

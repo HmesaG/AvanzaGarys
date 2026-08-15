@@ -1,79 +1,82 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Users, Calendar, Clock, DollarSign, ClipboardCheck, Check, X } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import SelectField from "@/components/SelectField";
-import {
-  ADMIN_MOCK,
-  DASHBOARD_STATS_MOCK,
-  PROXIMAS_CITAS_MOCK,
-  formatIngresos,
-} from "@/lib/admin-mock-data";
-import {
-  getClienteState,
-  aprobarEvaluacion,
-  rechazarEvaluacion,
-  tipoAsesoriaLabel,
-  type ClienteState,
-} from "@/lib/client-state";
-import { OPCIONES_TIEMPO, PROGRAMAS_MOCK } from "@/lib/mock-data";
+import { formatIngresos, type CitaAdmin, type DashboardStats } from "@/lib/admin-mock-data";
+import { OPCIONES_TIEMPO } from "@/lib/mock-data";
 import { erpAlert, successToast } from "@/lib/alerts";
 
-const STATS = [
-  {
-    label: "Clientes activos",
-    value: DASHBOARD_STATS_MOCK.clientesActivos.toString(),
-    icon: Users,
-    color: "text-avanza-green",
-    bg: "bg-avanza-green-light",
-  },
-  {
-    label: "Citas hoy",
-    value: DASHBOARD_STATS_MOCK.citasHoy.toString(),
-    icon: Calendar,
-    color: "text-avanza-blue",
-    bg: "bg-avanza-blue-light",
-  },
-  {
-    label: "Pendientes",
-    value: DASHBOARD_STATS_MOCK.pendientes.toString(),
-    icon: Clock,
-    color: "text-avanza-orange",
-    bg: "bg-avanza-orange-light",
-  },
-  {
-    label: "Ingresos (mes)",
-    value: formatIngresos(DASHBOARD_STATS_MOCK.ingresosMes),
-    icon: DollarSign,
-    color: "text-avanza-green",
-    bg: "bg-avanza-green-light",
-  },
-] as const;
+type EvaluacionPendiente = {
+  id: string;
+  clienteId: string;
+  clienteNombre: string;
+  linea: string;
+  objetivoPrincipal: string;
+  principalDificultad: string;
+  tiempoDeseado: string;
+  programasDisponibles: { id: string; nombre: string }[];
+};
 
-// Sección "Evaluación pendiente" — lee el client-state real (localStorage,
-// mismo dispositivo) porque Fase 1 no tiene backend multi-cliente: aquí el
-// coach revisa la evaluación enviada, elige un programa del catálogo mock
-// según la línea de asesoría, y aprueba o rechaza (pasos 5-6 del flujo real).
-function EvaluacionPendiente() {
-  const [state, setState] = useState<ClienteState | null>(null);
+type DashboardData = {
+  stats: DashboardStats;
+  evaluacionesPendientes: EvaluacionPendiente[];
+  proximasCitas: CitaAdmin[];
+};
+
+function tarjetasStats(stats: DashboardStats) {
+  return [
+    {
+      label: "Clientes activos",
+      value: stats.clientesActivos.toString(),
+      icon: Users,
+      color: "text-avanza-green",
+      bg: "bg-avanza-green-light",
+    },
+    {
+      label: "Citas hoy",
+      value: stats.citasHoy.toString(),
+      icon: Calendar,
+      color: "text-avanza-blue",
+      bg: "bg-avanza-blue-light",
+    },
+    {
+      label: "Pendientes",
+      value: stats.pendientes.toString(),
+      icon: Clock,
+      color: "text-avanza-orange",
+      bg: "bg-avanza-orange-light",
+    },
+    {
+      label: "Ingresos (mes)",
+      value: formatIngresos(stats.ingresosMes),
+      icon: DollarSign,
+      color: "text-avanza-green",
+      bg: "bg-avanza-green-light",
+    },
+  ];
+}
+
+// Revisión de una evaluación real (tabla `evaluaciones`, estado PENDIENTE).
+// Reemplaza el acoplamiento anterior, donde el admin leía el localStorage del
+// cliente: ahora aprobar/rechazar escribe en la base vía la API.
+function EvaluacionPendienteCard({
+  evaluacion,
+  onResuelta,
+}: {
+  evaluacion: EvaluacionPendiente;
+  onResuelta: () => void;
+}) {
   const [programaId, setProgramaId] = useState("");
   const [procesando, setProcesando] = useState(false);
 
-  useEffect(() => {
-    setState(getClienteState());
-  }, []);
-
-  if (!state?.evaluacion || state.estadoEvaluacion !== "pendiente") return null;
-
-  const tipo = state.registro?.tipoAsesoria || "personal";
-  const programas = PROGRAMAS_MOCK[tipo];
-
   async function handleAprobar() {
-    const programa = programas.find((p) => p.id === programaId);
+    const programa = evaluacion.programasDisponibles.find((p) => p.id === programaId);
     if (!programa) return;
+
     const result = await erpAlert.fire({
       icon: "question",
       title: "¿Aprobar evaluación?",
@@ -85,12 +88,20 @@ function EvaluacionPendiente() {
     if (!result.isConfirmed) return;
 
     setProcesando(true);
-    window.setTimeout(() => {
-      aprobarEvaluacion(programa);
-      setState(getClienteState());
-      setProcesando(false);
+    try {
+      const res = await fetch(`/api/admin/evaluaciones/${evaluacion.id}/aprobar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programaId }),
+      });
+      if (!res.ok) throw new Error("No se pudo aprobar la evaluación");
       successToast("Evaluación aprobada");
-    }, 350);
+      onResuelta();
+    } catch {
+      erpAlert.fire({ icon: "error", title: "No se pudo aprobar la evaluación" });
+    } finally {
+      setProcesando(false);
+    }
   }
 
   async function handleRechazar() {
@@ -105,12 +116,18 @@ function EvaluacionPendiente() {
     if (!result.isConfirmed) return;
 
     setProcesando(true);
-    window.setTimeout(() => {
-      rechazarEvaluacion();
-      setState(getClienteState());
-      setProcesando(false);
+    try {
+      const res = await fetch(`/api/admin/evaluaciones/${evaluacion.id}/rechazar`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("No se pudo rechazar la evaluación");
       successToast("Evaluación rechazada");
-    }, 350);
+      onResuelta();
+    } catch {
+      erpAlert.fire({ icon: "error", title: "No se pudo rechazar la evaluación" });
+    } finally {
+      setProcesando(false);
+    }
   }
 
   return (
@@ -125,31 +142,30 @@ function EvaluacionPendiente() {
 
       <div className="mb-4 space-y-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
         <p>
-          <span className="font-medium text-gray-900">Cliente:</span>{" "}
-          {state.registro?.nombreCompleto || "Sin registrar"} ·{" "}
-          {tipoAsesoriaLabel(tipo)}
+          <span className="font-medium text-gray-900">Cliente:</span> {evaluacion.clienteNombre} ·{" "}
+          {evaluacion.linea}
         </p>
         <p>
           <span className="font-medium text-gray-900">Objetivo:</span>{" "}
-          {state.evaluacion.objetivoPrincipal}
+          {evaluacion.objetivoPrincipal}
         </p>
         <p>
           <span className="font-medium text-gray-900">Dificultad:</span>{" "}
-          {state.evaluacion.principalDificultad}
+          {evaluacion.principalDificultad}
         </p>
         <p>
           <span className="font-medium text-gray-900">Tiempo deseado:</span>{" "}
-          {OPCIONES_TIEMPO.find((o) => o.value === state.evaluacion?.tiempoDeseado)
-            ?.label ?? state.evaluacion.tiempoDeseado}
+          {OPCIONES_TIEMPO.find((o) => o.value === evaluacion.tiempoDeseado)?.label ??
+            evaluacion.tiempoDeseado}
         </p>
       </div>
 
       <div className="mb-4">
         <SelectField
-          id="programaAsignar"
+          id={`programaAsignar-${evaluacion.id}`}
           label="Programa a asignar"
           placeholder="Selecciona un programa"
-          options={programas.map((p) => ({ value: p.id, label: p.nombre }))}
+          options={evaluacion.programasDisponibles.map((p) => ({ value: p.id, label: p.nombre }))}
           value={programaId}
           onChange={setProgramaId}
           required
@@ -181,6 +197,42 @@ function EvaluacionPendiente() {
 }
 
 export default function AdminDashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [nombreUsuario, setNombreUsuario] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
+
+  const cargarDashboard = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/dashboard");
+      if (!res.ok) throw new Error("Error al cargar el dashboard");
+      setData((await res.json()) as DashboardData);
+      setError(false);
+    } catch {
+      setError(true);
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void cargarDashboard();
+  }, [cargarDashboard]);
+
+  useEffect(() => {
+    async function cargarUsuario() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) return;
+        const { usuario } = (await res.json()) as { usuario: { nombre: string } };
+        setNombreUsuario(usuario.nombre.split(" ")[0]);
+      } catch {
+        // El saludo es cosmético: si falla, la página igual sirve.
+      }
+    }
+    void cargarUsuario();
+  }, []);
+
   return (
     <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Panel administrativo" />
@@ -188,71 +240,85 @@ export default function AdminDashboardPage() {
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
         <section className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            Hola, {ADMIN_MOCK.nombre}
+            Hola{nombreUsuario ? `, ${nombreUsuario}` : ""}
           </h2>
           <p className="mt-1 text-sm text-gray-500">Aquí tienes un resumen general</p>
         </section>
 
-        <EvaluacionPendiente />
-
-        <section aria-label="Resumen general" className="mb-6 grid grid-cols-2 gap-3">
-          {STATS.map(({ label, value, icon: Icon, color, bg }) => (
-            <div
-              key={label}
-              className="rounded-2xl border border-gray-200 bg-white p-4"
-            >
-              <span
-                className={`flex h-9 w-9 items-center justify-center rounded-full ${bg}`}
-              >
-                <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
-              </span>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-gray-900">
-                {value}
-              </p>
-              <p className="text-xs text-gray-500">{label}</p>
-            </div>
-          ))}
-        </section>
-
-        <section aria-label="Próximas citas">
-          <h2 className="mb-3 text-sm font-semibold text-gray-900">
-            Próximas citas
-          </h2>
-          <ul className="space-y-2">
-            {PROXIMAS_CITAS_MOCK.map((cita) => (
-              <li
-                key={cita.id}
-                className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4"
-              >
-                <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-avanza-green-light text-sm font-semibold text-avanza-green-dark"
-                  aria-hidden="true"
-                >
-                  {cita.clienteIniciales}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-gray-900">
-                    {cita.clienteNombre}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {cita.hora} · {cita.modalidad}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                    cita.estado === "confirmada"
-                      ? "bg-avanza-green-light text-avanza-green-dark"
-                      : "bg-avanza-orange-light text-avanza-orange"
-                  }`}
-                >
-                  {cita.estado === "confirmada" ? "Confirmada" : "Pendiente"}
-                </span>
-              </li>
+        {cargando ? (
+          <p className="mt-10 text-center text-sm text-gray-500">Cargando resumen...</p>
+        ) : error || !data ? (
+          <p className="mt-10 text-center text-sm text-gray-500">
+            No se pudo cargar el resumen. Intenta de nuevo más tarde.
+          </p>
+        ) : (
+          <>
+            {data.evaluacionesPendientes.map((evaluacion) => (
+              <EvaluacionPendienteCard
+                key={evaluacion.id}
+                evaluacion={evaluacion}
+                onResuelta={cargarDashboard}
+              />
             ))}
-          </ul>
-        </section>
-      </main>
 
+            <section aria-label="Resumen general" className="mb-6 grid grid-cols-2 gap-3">
+              {tarjetasStats(data.stats).map(({ label, value, icon: Icon, color, bg }) => (
+                <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-full ${bg}`}
+                  >
+                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
+                  </span>
+                  <p className="mt-3 text-2xl font-bold tabular-nums text-gray-900">{value}</p>
+                  <p className="text-xs text-gray-500">{label}</p>
+                </div>
+              ))}
+            </section>
+
+            <section aria-label="Próximas citas">
+              <h2 className="mb-3 text-sm font-semibold text-gray-900">Próximas citas</h2>
+              {data.proximasCitas.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                  No hay citas próximas agendadas.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {data.proximasCitas.map((cita) => (
+                    <li
+                      key={cita.id}
+                      className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4"
+                    >
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-avanza-green-light text-sm font-semibold text-avanza-green-dark"
+                        aria-hidden="true"
+                      >
+                        {cita.clienteIniciales}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-gray-900">
+                          {cita.clienteNombre}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {cita.hora} · {cita.modalidad}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                          cita.estado === "confirmada"
+                            ? "bg-avanza-green-light text-avanza-green-dark"
+                            : "bg-avanza-orange-light text-avanza-orange"
+                        }`}
+                      >
+                        {cita.estado === "confirmada" ? "Confirmada" : "Pendiente"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        )}
+      </main>
     </PageTransition>
   );
 }

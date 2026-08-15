@@ -1,12 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, Bell, HelpCircle, LogOut, ChevronRight } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import { erpAlert, erpToast } from "@/lib/alerts";
-import { ADMIN_MOCK } from "@/lib/admin-mock-data";
 
 const OPCIONES = [
   { icon: Settings, label: "Configuración" },
@@ -14,8 +14,33 @@ const OPCIONES = [
   { icon: HelpCircle, label: "Ayuda y soporte" },
 ] as const;
 
+const ROL_LABEL: Record<string, string> = {
+  ADMINISTRADOR: "Administrador",
+  COACH: "Coach",
+  SECRETARIA: "Secretaria",
+  CLIENTE: "Cliente",
+};
+
+type UsuarioSesion = { nombre: string; rol: string };
+
 export default function AdminMasPage() {
   const router = useRouter();
+  const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
+  const [cerrando, setCerrando] = useState(false);
+
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) return;
+        const { usuario: actual } = (await res.json()) as { usuario: UsuarioSesion };
+        setUsuario(actual);
+      } catch {
+        // Sin datos de sesión la página sigue siendo usable; el layout ya validó el acceso.
+      }
+    }
+    void cargar();
+  }, []);
 
   async function handleCerrarSesion() {
     const result = await erpAlert.fire({
@@ -29,7 +54,17 @@ export default function AdminMasPage() {
     });
     if (!result.isConfirmed) return;
 
-    router.push("/login");
+    setCerrando(true);
+    try {
+      // Destruye la sesión en Redis y limpia la cookie; sin esto el logout
+      // era puramente cosmético y la sesión seguía activa.
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (!res.ok) throw new Error("No se pudo cerrar la sesión");
+      router.replace("/login");
+    } catch {
+      setCerrando(false);
+      erpAlert.fire({ icon: "error", title: "No se pudo cerrar la sesión" });
+    }
   }
 
   return (
@@ -42,11 +77,13 @@ export default function AdminMasPage() {
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-avanza-green-light text-sm font-semibold text-avanza-green-dark"
             aria-hidden="true"
           >
-            {ADMIN_MOCK.nombre.slice(0, 1)}
+            {usuario?.nombre.slice(0, 1) ?? ""}
           </span>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{ADMIN_MOCK.nombre}</p>
-            <p className="text-xs text-gray-500">{ADMIN_MOCK.rol}</p>
+            <p className="text-sm font-semibold text-gray-900">{usuario?.nombre ?? "—"}</p>
+            <p className="text-xs text-gray-500">
+              {usuario ? (ROL_LABEL[usuario.rol] ?? usuario.rol) : ""}
+            </p>
           </div>
         </section>
 
@@ -71,10 +108,11 @@ export default function AdminMasPage() {
         <button
           type="button"
           onClick={handleCerrarSesion}
-          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-5 font-semibold text-red-600 transition-all duration-150 hover:bg-red-50 active:scale-[0.98]"
+          disabled={cerrando}
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-5 font-semibold text-red-600 transition-all duration-150 hover:bg-red-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />
-          Cerrar sesión
+          {cerrando ? "Cerrando sesión..." : "Cerrar sesión"}
         </button>
       </main>
     </PageTransition>
