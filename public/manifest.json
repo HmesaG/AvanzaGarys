@@ -1,0 +1,14 @@
+{
+  "name": "Avanza — Coaching y Asesoría",
+  "short_name": "Avanza",
+  "description": "Impulsa tu mejor versión: coaching personal, corporativo y deportivo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2e7d32",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
