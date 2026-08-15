@@ -100,7 +100,7 @@ export default function AgendaPage() {
   }
 
   return (
-    <PageTransition>
+    <PageTransition footer={<BottomNav />}>
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
         <BackHeader title="Agenda" subtitle="Reserva o revisa tu próxima sesión" />
 
@@ -224,7 +224,6 @@ export default function AgendaPage() {
           {confirmando ? "Agendando..." : "Confirmar sesión"}
         </button>
       </main>
-      <BottomNav />
     </PageTransition>
   );
 }

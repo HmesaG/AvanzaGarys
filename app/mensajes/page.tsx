@@ -64,7 +64,10 @@ export default function MensajesPage() {
   }
 
   return (
-    <PageTransition className="flex min-h-dvh flex-col">
+    <PageTransition
+      className="flex min-h-dvh flex-col"
+      footer={<BottomNav />}
+    >
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pt-8 safe-top">
         <BackHeader
           title={ASESOR_MOCK.nombre}
@@ -145,7 +148,6 @@ export default function MensajesPage() {
         </div>
       </form>
 
-      <BottomNav />
     </PageTransition>
   );
 }

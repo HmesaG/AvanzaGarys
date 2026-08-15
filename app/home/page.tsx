@@ -75,7 +75,7 @@ export default function HomePage() {
   const tipo = state?.registro?.tipoAsesoria;
 
   return (
-    <PageTransition>
+    <PageTransition footer={<BottomNav />}>
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
         <header className="mb-6">
           <p className="flex items-center gap-1.5 text-sm font-medium text-avanza-green">
@@ -197,7 +197,6 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-      <BottomNav />
     </PageTransition>
   );
 }

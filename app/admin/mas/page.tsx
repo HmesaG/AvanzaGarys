@@ -7,7 +7,7 @@ import PageTransition from "@/components/PageTransition";
 
 export default function AdminMasPage() {
   return (
-    <PageTransition>
+    <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Más" />
 
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-5 pb-28 pt-6 text-center">
@@ -23,7 +23,6 @@ export default function AdminMasPage() {
         </p>
       </main>
 
-      <AdminBottomNav />
     </PageTransition>
   );
 }

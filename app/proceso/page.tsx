@@ -39,7 +39,7 @@ export default function ProcesoPage() {
   }
 
   return (
-    <PageTransition>
+    <PageTransition footer={<BottomNav />}>
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
         <BackHeader title="Mi proceso" subtitle="Sigue tu avance y tareas asignadas" />
 
@@ -125,7 +125,6 @@ export default function ProcesoPage() {
           </ul>
         </section>
       </main>
-      <BottomNav />
     </PageTransition>
   );
 }

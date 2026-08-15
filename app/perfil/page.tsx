@@ -79,7 +79,7 @@ export default function PerfilPage() {
   }
 
   return (
-    <PageTransition>
+    <PageTransition footer={<BottomNav />}>
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
         <BackHeader title="Perfil" subtitle="Tu información y preferencias" />
 
@@ -229,7 +229,6 @@ export default function PerfilPage() {
           </>
         )}
       </main>
-      <BottomNav />
     </PageTransition>
   );
 }

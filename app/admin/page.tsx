@@ -44,7 +44,7 @@ const STATS = [
 
 export default function AdminDashboardPage() {
   return (
-    <PageTransition>
+    <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Panel administrativo" />
 
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
@@ -113,7 +113,6 @@ export default function AdminDashboardPage() {
         </section>
       </main>
 
-      <AdminBottomNav />
     </PageTransition>
   );
 }
