@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { User, Phone, Mail, Cake } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import PageTransition from "@/components/PageTransition";
@@ -28,6 +28,12 @@ const initialForm: FormState = {
   edad: "",
   tipoAsesoria: "",
 };
+
+const TIPOS_VALIDOS = new Set(TIPOS_ASESORIA.map((t) => t.id));
+
+function tipoDesdeQuery(value: string | null): TipoAsesoria | "" {
+  return value && TIPOS_VALIDOS.has(value as TipoAsesoria) ? (value as TipoAsesoria) : "";
+}
 
 function validateField(name: keyof FormState, value: string): string | undefined {
   switch (name) {
@@ -57,9 +63,13 @@ function validateField(name: keyof FormState, value: string): string | undefined
   }
 }
 
-export default function RegistroPage() {
+function RegistroForm() {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(initialForm);
+  const searchParams = useSearchParams();
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initialForm,
+    tipoAsesoria: tipoDesdeQuery(searchParams.get("tipo")),
+  }));
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -192,5 +202,13 @@ export default function RegistroPage() {
         </form>
       </main>
     </PageTransition>
+  );
+}
+
+export default function RegistroPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegistroForm />
+    </Suspense>
   );
 }
