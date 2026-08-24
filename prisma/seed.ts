@@ -209,6 +209,18 @@ async function main() {
     });
   }
 
+  // --- Tareas de ejemplo (sección "Mi proceso") -----------------------------
+  const tareasExistentes = await prisma.tarea.count({ where: { clienteId: luis.id } });
+  if (tareasExistentes === 0) {
+    await prisma.tarea.createMany({
+      data: [
+        { clienteId: luis.id, label: "Ejercicio de autoconocimiento", completada: true },
+        { clienteId: luis.id, label: "Diario emocional", completada: false },
+        { clienteId: luis.id, label: "Técnicas de respiración", completada: false },
+      ],
+    });
+  }
+
   console.log("Seed completado.");
   console.log(`Credenciales de desarrollo (password para todos: "${DEV_PASSWORD}"):`);
   console.log("  admin@avanza.local (ADMINISTRADOR)");

@@ -116,6 +116,7 @@ model Cliente {
   pagos              Pago[]
   citas              Cita[]
   mensajes           Mensaje[]
+  tareas             Tarea[]
 
   @@index([tipoAsesoria])
   @@map("clientes")
@@ -210,6 +211,23 @@ model Cita {
   @@index([fecha])
   @@index([clienteId])
   @@map("citas")
+}
+
+// Tareas asignadas al cliente como parte de su programa (sección "Mi proceso").
+// Se siembran al aprobar la evaluación (junto con el programa y el pago); no
+// hay todavía una pantalla de coach para crear/editar tareas sueltas — eso
+// queda para cuando exista un flujo de seguimiento del lado admin.
+model Tarea {
+  id         String   @id @default(cuid())
+  clienteId  String   @map("cliente_id")
+  label      String
+  completada Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@map("tareas")
 }
 
 model Mensaje {

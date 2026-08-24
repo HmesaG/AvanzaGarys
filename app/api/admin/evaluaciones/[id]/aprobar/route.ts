@@ -66,6 +66,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           estado: "PENDIENTE",
         },
       }),
+      // Tareas iniciales genéricas de "Mi proceso": todavía no hay una pantalla
+      // de coach para elegir/editar tareas, así que se siembra un set fijo al
+      // aprobar (igual al que mostraba el mock TAREAS_INICIALES).
+      prisma.tarea.createMany({
+        data: [
+          { clienteId: evaluacion.clienteId, label: "Ejercicio de autoconocimiento" },
+          { clienteId: evaluacion.clienteId, label: "Diario emocional" },
+          { clienteId: evaluacion.clienteId, label: "Técnicas de respiración" },
+        ],
+      }),
     ]);
 
     await Promise.all([

@@ -22,7 +22,8 @@ import {
   tipoAsesoriaLabel,
   type EstadoCliente,
 } from "@/lib/cliente-api";
-import { OBJETIVO_PRINCIPAL_MOCK, PROGRESO_MOCK } from "@/lib/mock-data";
+
+const OBJETIVO_POR_DEFECTO = "Define tu objetivo principal en la evaluación inicial";
 
 const ACCESOS = [
   {
@@ -88,7 +89,12 @@ export default function HomePage() {
   const nombre = estado?.perfil.nombreCompleto.split(" ")[0];
   const tipo = estado?.perfil.tipoAsesoria;
   const proximaCita = estado?.proximaCita ?? null;
-  const objetivo = estado?.evaluacion?.objetivoPrincipal ?? OBJETIVO_PRINCIPAL_MOCK;
+  const objetivo = estado?.evaluacion?.objetivoPrincipal ?? OBJETIVO_POR_DEFECTO;
+  const tareas = estado?.tareas ?? [];
+  const progreso =
+    tareas.length > 0
+      ? Math.round((tareas.filter((t) => t.completada).length / tareas.length) * 100)
+      : 0;
 
   return (
     <PageTransition footer={<BottomNav />}>
@@ -164,20 +170,20 @@ export default function HomePage() {
               className="text-sm font-bold tabular-nums text-avanza-green"
               aria-hidden="true"
             >
-              {PROGRESO_MOCK}%
+              {progreso}%
             </span>
           </div>
           <div
             role="progressbar"
             aria-label="Progreso general del proceso"
-            aria-valuenow={PROGRESO_MOCK}
+            aria-valuenow={progreso}
             aria-valuemin={0}
             aria-valuemax={100}
             className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
           >
             <div
               className="h-full rounded-full bg-avanza-green transition-[width] duration-500 ease-out"
-              style={{ width: `${PROGRESO_MOCK}%` }}
+              style={{ width: `${progreso}%` }}
             />
           </div>
           <p className="mt-3 text-sm text-gray-600">

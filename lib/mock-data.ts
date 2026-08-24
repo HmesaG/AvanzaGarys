@@ -93,21 +93,6 @@ export const MENSAJES_INICIALES: Mensaje[] = [
   },
 ];
 
-export type Tarea = {
-  id: string;
-  label: string;
-  completada: boolean;
-};
-
-export const TAREAS_INICIALES: Tarea[] = [
-  { id: "t1", label: "Ejercicio de autoconocimiento", completada: false },
-  { id: "t2", label: "Diario emocional", completada: true },
-  { id: "t3", label: "Técnicas de respiración", completada: false },
-];
-
-export const OBJETIVO_PRINCIPAL_MOCK = "Mejorar mi autoestima y manejo de estrés";
-export const PROGRESO_MOCK = 60;
-
 // Programas mock por línea de asesoría — el coach elige uno al aprobar la
 // evaluación de un cliente (paso 6 del flujo real: asignación del programa).
 export type Programa = {

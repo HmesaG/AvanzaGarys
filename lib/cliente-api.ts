@@ -66,6 +66,12 @@ export type MensajeCliente = {
   hora: string;
 };
 
+export type TareaCliente = {
+  id: string;
+  label: string;
+  completada: boolean;
+};
+
 export type EstadoCliente = {
   perfil: PerfilCliente;
   evaluacion: EvaluacionCliente | null;
@@ -74,6 +80,7 @@ export type EstadoCliente = {
   pago: PagoCliente | null;
   proximaCita: CitaCliente | null;
   puedeAgendar: boolean;
+  tareas: TareaCliente[];
 };
 
 // --- Transporte ---------------------------------------------------------------
@@ -178,6 +185,13 @@ export async function agendarCita(datos: {
 
 export async function cancelarCita(id: string): Promise<void> {
   await pedir(`/api/cliente/citas/${id}`, { method: "DELETE" });
+}
+
+export async function alternarTarea(id: string): Promise<TareaCliente> {
+  const { tarea } = await pedir<{ tarea: TareaCliente }>(`/api/cliente/tareas/${id}`, {
+    method: "PATCH",
+  });
+  return tarea;
 }
 
 export async function obtenerMensajes(): Promise<MensajeCliente[]> {

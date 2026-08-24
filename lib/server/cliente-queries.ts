@@ -91,6 +91,12 @@ export type MensajeCliente = {
   hora: string;
 };
 
+export type TareaCliente = {
+  id: string;
+  label: string;
+  completada: boolean;
+};
+
 /**
  * Estado agregado del cliente en sesión: es exactamente lo que `home`, `perfil`,
  * `proceso`, `programa` y `agenda` necesitan para renderizar. Se resuelve en un
@@ -106,6 +112,7 @@ export type EstadoCliente = {
   pago: PagoCliente | null;
   proximaCita: CitaCliente | null;
   puedeAgendar: boolean;
+  tareas: TareaCliente[];
 };
 
 // --- Helpers ------------------------------------------------------------------
@@ -220,6 +227,7 @@ export async function obtenerEstado(session: SessionData): Promise<EstadoCliente
       consentimiento: true,
       pagos: true,
       citas: { where: { fecha: { gte: inicioDeHoyUtc() } }, orderBy: { fecha: "asc" }, take: 1 },
+      tareas: { orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -271,6 +279,7 @@ export async function obtenerEstado(session: SessionData): Promise<EstadoCliente
     pago,
     proximaCita: cliente.citas[0] ? mapCita(cliente.citas[0]) : null,
     puedeAgendar: Boolean(consentimiento?.aceptado && pago?.estado === "PAGADO"),
+    tareas: cliente.tareas.map((t) => ({ id: t.id, label: t.label, completada: t.completada })),
   };
 }
 
@@ -293,6 +302,25 @@ export async function listarCitas(clienteId: string): Promise<CitaCliente[]> {
     orderBy: { fecha: "asc" },
   });
   return citas.map(mapCita);
+}
+
+/**
+ * Alterna `completada` de una tarea propia. El `updateMany` filtra por
+ * `clienteId` además del id de la tarea, igual que `cancelarCita`: sin eso,
+ * adivinar un id de tarea ajeno alcanzaría para modificarla.
+ */
+export async function alternarTarea(clienteId: string, tareaId: string): Promise<TareaCliente> {
+  const tarea = await prisma.tarea.findFirst({ where: { id: tareaId, clienteId } });
+  if (!tarea) {
+    throw new ClienteError(404, "Tarea no encontrada");
+  }
+
+  const actualizada = await prisma.tarea.update({
+    where: { id: tareaId },
+    data: { completada: !tarea.completada },
+  });
+
+  return { id: actualizada.id, label: actualizada.label, completada: actualizada.completada };
 }
 
 export async function listarMensajes(clienteId: string): Promise<MensajeCliente[]> {

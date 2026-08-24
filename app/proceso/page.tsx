@@ -5,46 +5,47 @@ import { CheckSquare, Square, Target, TrendingUp } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
-import { obtenerEstado } from "@/lib/cliente-api";
-import {
-  OBJETIVO_PRINCIPAL_MOCK,
-  PROGRESO_MOCK,
-  TAREAS_INICIALES,
-  type Tarea,
-} from "@/lib/mock-data";
+import { alternarTarea, obtenerEstado, type TareaCliente } from "@/lib/cliente-api";
 import { successToast } from "@/lib/alerts";
 
+const OBJETIVO_POR_DEFECTO = "Define tu objetivo principal en la evaluación inicial";
+
 export default function ProcesoPage() {
-  const [tareas, setTareas] = useState<Tarea[]>(TAREAS_INICIALES);
-  const [objetivo, setObjetivo] = useState(OBJETIVO_PRINCIPAL_MOCK);
+  const [tareas, setTareas] = useState<TareaCliente[]>([]);
+  const [objetivo, setObjetivo] = useState(OBJETIVO_POR_DEFECTO);
 
   useEffect(() => {
-    // El objetivo real sale de la evaluación del cliente; si todavía no la envió
-    // (o falla la lectura), queda el texto de ejemplo que ya se mostraba.
-    async function cargarObjetivo() {
+    // Objetivo y tareas salen del estado real del cliente; si todavía no hay
+    // evaluación/programa (o falla la lectura), quedan los valores por defecto.
+    async function cargarEstado() {
       try {
-        const { evaluacion } = await obtenerEstado();
+        const { evaluacion, tareas } = await obtenerEstado();
         if (evaluacion?.objetivoPrincipal) setObjetivo(evaluacion.objetivoPrincipal);
+        setTareas(tareas);
       } catch {
-        // Sin datos reales, se conserva el objetivo por defecto.
+        // Sin datos reales, se conservan los valores por defecto.
       }
     }
-    void cargarObjetivo();
+    void cargarEstado();
   }, []);
 
   const completadas = tareas.filter((t) => t.completada).length;
-  const progresoTareas = Math.round((completadas / tareas.length) * 100);
+  const progresoTareas = tareas.length > 0 ? Math.round((completadas / tareas.length) * 100) : 0;
 
-  function toggleTarea(id: string) {
-    setTareas((prev) => {
-      const next = prev.map((t) =>
-        t.id === id ? { ...t, completada: !t.completada } : t
-      );
-      if (next.every((t) => t.completada) && !prev.every((t) => t.completada)) {
+  async function toggleTarea(id: string) {
+    const previas = tareas;
+    const next = tareas.map((t) => (t.id === id ? { ...t, completada: !t.completada } : t));
+    setTareas(next);
+
+    try {
+      await alternarTarea(id);
+      if (next.every((t) => t.completada) && !previas.every((t) => t.completada)) {
         successToast("¡Completaste todas tus tareas!");
       }
-      return next;
-    });
+    } catch {
+      // Falló el guardado: se revierte para no mostrar un estado que no persistió.
+      setTareas(previas);
+    }
   }
 
   return (
@@ -73,20 +74,20 @@ export default function ProcesoPage() {
               Progreso general
             </p>
             <span className="text-sm font-bold tabular-nums text-avanza-green">
-              {PROGRESO_MOCK}%
+              {progresoTareas}%
             </span>
           </div>
           <div
             role="progressbar"
             aria-label="Progreso general del proceso"
-            aria-valuenow={PROGRESO_MOCK}
+            aria-valuenow={progresoTareas}
             aria-valuemin={0}
             aria-valuemax={100}
             className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
           >
             <div
               className="h-full rounded-full bg-avanza-green transition-[width] duration-500 ease-out"
-              style={{ width: `${PROGRESO_MOCK}%` }}
+              style={{ width: `${progresoTareas}%` }}
             />
           </div>
         </section>
@@ -98,6 +99,12 @@ export default function ProcesoPage() {
               {completadas}/{tareas.length} · {progresoTareas}%
             </span>
           </div>
+          {tareas.length === 0 && (
+            <p className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
+              Todavía no tienes tareas asignadas. Aparecerán aquí cuando tu asesor
+              apruebe tu programa.
+            </p>
+          )}
           <ul className="space-y-2">
             {tareas.map((tarea) => (
               <li key={tarea.id}>
