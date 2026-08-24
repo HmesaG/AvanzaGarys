@@ -59,6 +59,9 @@ const registroSchema = z.object({
   edad: z.coerce.number().int().min(12).max(100),
   tipoAsesoria: z.enum(["personal", "corporativo", "deportivo"]),
   password: z.string().min(8).max(72),
+  // Acotado: es un cuid, no texto libre. Sin tope, el endpoint público acepta
+  // cualquier payload y lo lleva tal cual a una consulta a la base.
+  empresaId: z.string().trim().max(64).optional(),
 });
 
 /** `true` si el error de Prisma es una violación de índice único. */
@@ -103,6 +106,21 @@ export async function POST(request: Request) {
   const correo = parsed.data.correo.toLowerCase();
   const tipoAsesoria = TIPO_ASESORIA_POR_ID[parsed.data.tipoAsesoria]!;
 
+  // El empresaId del body solo aplica a la línea Corporativo, y solo si
+  // corresponde a una empresa real: no confiamos en que el frontend no lo
+  // mande para otras líneas ni en que el id exista de verdad.
+  let empresaId: string | null = null;
+  if (tipoAsesoria === TipoAsesoria.CORPORATIVO && parsed.data.empresaId) {
+    const empresa = await prisma.empresa.findUnique({
+      where: { id: parsed.data.empresaId },
+      select: { id: true },
+    });
+    if (!empresa) {
+      return Response.json({ error: "Empresa inválida" }, { status: 400 });
+    }
+    empresaId = empresa.id;
+  }
+
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   let usuarioId: string;
@@ -114,7 +132,7 @@ export async function POST(request: Request) {
         data: { nombre: nombreCompleto, correo, passwordHash, rol: Rol.CLIENTE },
       });
       await tx.cliente.create({
-        data: { usuarioId: creado.id, nombreCompleto, telefono, edad, tipoAsesoria },
+        data: { usuarioId: creado.id, nombreCompleto, telefono, edad, tipoAsesoria, empresaId },
       });
       return creado;
     });

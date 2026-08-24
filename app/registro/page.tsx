@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, FormEvent, Suspense } from "react";
+import { useEffect, useState, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { User, Phone, Mail, Cake, Lock } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import PageTransition from "@/components/PageTransition";
 import TextField from "@/components/TextField";
 import SelectField from "@/components/SelectField";
-import { registrarCliente } from "@/lib/cliente-api";
+import { obtenerEmpresas, registrarCliente, type EmpresaOpcion } from "@/lib/cliente-api";
 import { TIPOS_ASESORIA, type TipoAsesoria } from "@/lib/mock-data";
 import { successToast } from "@/lib/alerts";
 
@@ -18,6 +18,7 @@ type FormState = {
   edad: string;
   tipoAsesoria: TipoAsesoria | "";
   password: string;
+  empresaId: string;
 };
 
 type Errors = Partial<Record<keyof FormState, string>>;
@@ -29,6 +30,7 @@ const initialForm: FormState = {
   edad: "",
   tipoAsesoria: "",
   password: "",
+  empresaId: "",
 };
 
 const TIPOS_VALIDOS = new Set(TIPOS_ASESORIA.map((t) => t.id));
@@ -81,6 +83,18 @@ function RegistroForm() {
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [empresas, setEmpresas] = useState<EmpresaOpcion[]>([]);
+
+  useEffect(() => {
+    async function cargarEmpresas() {
+      try {
+        setEmpresas(await obtenerEmpresas());
+      } catch {
+        // No bloquea el registro: el campo simplemente queda sin opciones.
+      }
+    }
+    void cargarEmpresas();
+  }, []);
 
   function handleChange<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -108,7 +122,7 @@ function RegistroForm() {
     try {
       // El alta crea Usuario + Cliente y deja la sesión iniciada, así que se
       // puede ir directo a la evaluación (ruta ya protegida por el middleware).
-      await registrarCliente(form);
+      await registrarCliente({ ...form, empresaId: form.empresaId || undefined });
       successToast("Registro guardado");
       router.push("/evaluacion");
     } catch (error) {
@@ -207,6 +221,17 @@ function RegistroForm() {
               <p className="mt-1.5 text-sm text-red-600">{errors.tipoAsesoria}</p>
             )}
           </div>
+
+          {form.tipoAsesoria === "corporativo" && (
+            <SelectField
+              id="empresaId"
+              label="Empresa"
+              placeholder="Selecciona una empresa (opcional)"
+              options={empresas.map((e) => ({ value: e.id, label: e.nombre }))}
+              value={form.empresaId}
+              onChange={(value) => handleChange("empresaId", value)}
+            />
+          )}
 
           <TextField
             id="password"

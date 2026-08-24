@@ -113,6 +113,7 @@ model Cliente {
   evaluaciones       Evaluacion[]
   programasAsignados ProgramaAsignado[]
   consentimiento     Consentimiento?
+  diagnostico        Diagnostico?
   pagos              Pago[]
   citas              Cita[]
   mensajes           Mensaje[]
@@ -180,6 +181,24 @@ model Consentimiento {
   cliente Cliente @relation(fields: [clienteId], references: [id])
 
   @@map("consentimientos")
+}
+
+// Cuestionario fijo de diagnóstico organizacional (Fase 5 Entrega 1 —
+// coaching organizacional). Uno por cliente CORPORATIVO, mismo patrón de
+// preguntas de texto libre fijas que Evaluacion (sin enums de opciones).
+model Diagnostico {
+  id                String   @id @default(cuid())
+  clienteId         String   @unique @map("cliente_id")
+  climaLaboral      String   @map("clima_laboral") @db.Text
+  principalDesafio  String   @map("principal_desafio") @db.Text
+  nivelComunicacion String   @map("nivel_comunicacion")
+  objetivoEmpresa   String   @map("objetivo_empresa") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@map("diagnosticos")
 }
 
 model Pago {

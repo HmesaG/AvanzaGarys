@@ -13,6 +13,7 @@ import {
   Sparkles,
   Clock,
   Award,
+  Building2,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -25,7 +26,7 @@ import {
 
 const OBJETIVO_POR_DEFECTO = "Define tu objetivo principal en la evaluación inicial";
 
-const ACCESOS = [
+const ACCESOS_BASE = [
   {
     // Antes apuntaba a `/registro`. Con sesión real, ese formulario crea una
     // cuenta nueva: el acceso de "tus datos" para alguien ya registrado es su
@@ -71,6 +72,18 @@ const ACCESOS = [
   },
 ] as const;
 
+// Solo visible para clientes de línea Corporativo (Fase 5 Entrega 1). Combinación
+// de color distinta a las demás (naranja sobre fondo azul claro) para no repetir
+// exactamente ninguna de las que ya usan los otros 5 accesos.
+const ACCESO_DIAGNOSTICO = {
+  href: "/diagnostico",
+  label: "Diagnóstico",
+  desc: "Cuestionario organizacional",
+  icon: Building2,
+  color: "text-avanza-orange",
+  bg: "bg-avanza-blue-light",
+} as const;
+
 export default function HomePage() {
   const [estado, setEstado] = useState<EstadoCliente | null>(null);
 
@@ -95,6 +108,8 @@ export default function HomePage() {
     tareas.length > 0
       ? Math.round((tareas.filter((t) => t.completada).length / tareas.length) * 100)
       : 0;
+  const accesos =
+    tipo === "CORPORATIVO" ? [...ACCESOS_BASE, ACCESO_DIAGNOSTICO] : ACCESOS_BASE;
 
   return (
     <PageTransition footer={<BottomNav />}>
@@ -197,7 +212,7 @@ export default function HomePage() {
             Accesos rápidos
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            {ACCESOS.map(({ href, label, desc, icon: Icon, color, bg }) => (
+            {accesos.map(({ href, label, desc, icon: Icon, color, bg }) => (
               <Link
                 key={href}
                 href={href}

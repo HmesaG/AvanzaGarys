@@ -81,7 +81,10 @@ export type EstadoCliente = {
   proximaCita: CitaCliente | null;
   puedeAgendar: boolean;
   tareas: TareaCliente[];
+  diagnosticoCompletado: boolean;
 };
+
+export type EmpresaOpcion = { id: string; nombre: string };
 
 // --- Transporte ---------------------------------------------------------------
 
@@ -129,8 +132,14 @@ export async function registrarCliente(datos: {
   edad: string;
   tipoAsesoria: string;
   password: string;
+  empresaId?: string;
 }): Promise<void> {
   await postJson("/api/auth/registro", datos);
+}
+
+export async function obtenerEmpresas(): Promise<EmpresaOpcion[]> {
+  const { empresas } = await pedir<{ empresas: EmpresaOpcion[] }>("/api/empresas");
+  return empresas;
 }
 
 export async function obtenerEstado(): Promise<EstadoCliente> {
@@ -204,6 +213,15 @@ export async function enviarMensaje(texto: string): Promise<MensajeCliente> {
     texto,
   });
   return mensaje;
+}
+
+export async function enviarDiagnostico(datos: {
+  climaLaboral: string;
+  principalDesafio: string;
+  nivelComunicacion: string;
+  objetivoEmpresa: string;
+}): Promise<void> {
+  await postJson("/api/cliente/diagnostico", datos);
 }
 
 // --- Presentación -------------------------------------------------------------

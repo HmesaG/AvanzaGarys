@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Bell, HelpCircle, LogOut, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Settings, Bell, HelpCircle, Building2, LogOut, ChevronRight } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import { erpAlert, erpToast } from "@/lib/alerts";
 
+// `href` presente = navega de verdad (Empresas, Fase 5 Entrega 1); ausente =
+// placeholder que muestra el toast "disponible próximamente".
+//
+// `roles` presente = la opción solo se muestra a esos roles. El layout de
+// /admin admite los tres roles internos, pero /api/admin/empresas* es de
+// Administrador/Secretaria: sin este filtro, un Coach llega a una pantalla que
+// solo puede responderle 403.
 const OPCIONES = [
+  { icon: Building2, label: "Empresas", href: "/admin/empresas", roles: ["ADMINISTRADOR", "SECRETARIA"] },
   { icon: Settings, label: "Configuración" },
   { icon: Bell, label: "Notificaciones" },
   { icon: HelpCircle, label: "Ayuda y soporte" },
@@ -88,21 +97,42 @@ export default function AdminMasPage() {
         </section>
 
         <ul className="mb-6 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white">
-          {OPCIONES.map(({ icon: Icon, label }) => (
-            <li key={label}>
-              <button
-                type="button"
-                onClick={() =>
-                  erpToast.fire({ icon: "info", title: `${label} disponible próximamente` })
-                }
-                className="flex min-h-[52px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
-              >
+          {OPCIONES.filter((opcion) =>
+            "roles" in opcion
+              ? Boolean(usuario) && (opcion.roles as readonly string[]).includes(usuario!.rol)
+              : true,
+          ).map(({ icon: Icon, label, ...opcion }) => {
+            const href = "href" in opcion ? opcion.href : undefined;
+            const contenido = (
+              <>
                 <Icon className="h-4 w-4 text-gray-500" aria-hidden="true" />
                 <span className="flex-1 text-sm font-medium text-gray-900">{label}</span>
                 <ChevronRight className="h-4 w-4 text-gray-300" aria-hidden="true" />
-              </button>
-            </li>
-          ))}
+              </>
+            );
+            const className =
+              "flex min-h-[52px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]";
+
+            return (
+              <li key={label}>
+                {href ? (
+                  <Link href={href} className={className}>
+                    {contenido}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      erpToast.fire({ icon: "info", title: `${label} disponible próximamente` })
+                    }
+                    className={className}
+                  >
+                    {contenido}
+                  </button>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         <button

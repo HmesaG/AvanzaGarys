@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Award,
   CreditCard,
+  Building2,
 } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
@@ -302,6 +303,22 @@ export default function PerfilPage() {
                       ? `${estado.pago.estado === "PAGADO" ? "Pagado" : "Pendiente"} · ${formatMonto(estado.pago.monto)}`
                       : "Sin pagos registrados"}
                   </Link>
+
+                  {estado.perfil.tipoAsesoria === "CORPORATIVO" && (
+                    <Link
+                      href="/diagnostico"
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-opacity duration-150 hover:opacity-80 ${
+                        estado.diagnosticoCompletado
+                          ? "bg-avanza-green-light text-avanza-green-dark"
+                          : "bg-avanza-orange-light text-avanza-orange"
+                      }`}
+                    >
+                      <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      {estado.diagnosticoCompletado
+                        ? "Diagnóstico: completado"
+                        : "Diagnóstico: pendiente"}
+                    </Link>
+                  )}
                 </div>
               </section>
             )}

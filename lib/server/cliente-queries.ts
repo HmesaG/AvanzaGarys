@@ -16,7 +16,7 @@ import type { EstadoPago, MetodoPago, TipoAsesoria } from "../../generated/enums
 /** Error de regla de negocio del área de cliente (no de autenticación). */
 export class ClienteError extends Error {
   constructor(
-    readonly status: 400 | 404 | 409,
+    readonly status: 400 | 403 | 404 | 409,
     message: string,
   ) {
     super(message);
@@ -113,6 +113,7 @@ export type EstadoCliente = {
   proximaCita: CitaCliente | null;
   puedeAgendar: boolean;
   tareas: TareaCliente[];
+  diagnosticoCompletado: boolean;
 };
 
 // --- Helpers ------------------------------------------------------------------
@@ -228,6 +229,7 @@ export async function obtenerEstado(session: SessionData): Promise<EstadoCliente
       pagos: true,
       citas: { where: { fecha: { gte: inicioDeHoyUtc() } }, orderBy: { fecha: "asc" }, take: 1 },
       tareas: { orderBy: { createdAt: "asc" } },
+      diagnostico: { select: { id: true } },
     },
   });
 
@@ -280,6 +282,7 @@ export async function obtenerEstado(session: SessionData): Promise<EstadoCliente
     proximaCita: cliente.citas[0] ? mapCita(cliente.citas[0]) : null,
     puedeAgendar: Boolean(consentimiento?.aceptado && pago?.estado === "PAGADO"),
     tareas: cliente.tareas.map((t) => ({ id: t.id, label: t.label, completada: t.completada })),
+    diagnosticoCompletado: cliente.diagnostico !== null,
   };
 }
 
@@ -337,4 +340,36 @@ export async function listarMensajes(clienteId: string): Promise<MensajeCliente[
     hora: mensaje.hora.toISOString(),
     texto: mensaje.texto,
   }));
+}
+
+// --- Diagnóstico organizacional (Fase 5 Entrega 1) -----------------------------
+
+/**
+ * Cuestionario fijo de diagnóstico organizacional, solo para clientes
+ * CORPORATIVO y solo una vez por cliente (1:1 con `Diagnostico`).
+ */
+export async function crearDiagnostico(
+  clienteId: string,
+  datos: {
+    climaLaboral: string;
+    principalDesafio: string;
+    nivelComunicacion: string;
+    objetivoEmpresa: string;
+  },
+): Promise<void> {
+  const cliente = await prisma.cliente.findUnique({
+    where: { id: clienteId },
+    select: { tipoAsesoria: true, diagnostico: { select: { id: true } } },
+  });
+  if (!cliente) {
+    throw new ClienteError(404, "No hay un perfil de cliente asociado a esta cuenta");
+  }
+  if (cliente.tipoAsesoria !== "CORPORATIVO") {
+    throw new ClienteError(403, "El diagnóstico organizacional solo aplica a clientes corporativos");
+  }
+  if (cliente.diagnostico) {
+    throw new ClienteError(409, "Ya completaste el diagnóstico organizacional");
+  }
+
+  await prisma.diagnostico.create({ data: { clienteId, ...datos } });
 }

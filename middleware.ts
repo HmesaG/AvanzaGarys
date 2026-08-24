@@ -58,5 +58,6 @@ export const config = {
     "/evaluacion/:path*",
     "/programa/:path*",
     "/agenda/:path*",
+    "/diagnostico/:path*",
   ],
 };

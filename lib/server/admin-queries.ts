@@ -281,3 +281,76 @@ export async function listarCitas(session: SessionData): Promise<CitaAdmin[]> {
     estado: cita.estado.toLowerCase() as EstadoCita,
   }));
 }
+
+// --- Empresas (Fase 5 Entrega 1 — coaching organizacional) --------------------
+
+export type EmpresaAdmin = {
+  id: string;
+  nombre: string;
+  contacto: string;
+  correo: string;
+  participantes: number;
+};
+
+export type EmpresaDetalle = {
+  id: string;
+  nombre: string;
+  contacto: string;
+  correo: string;
+  participantes: { id: string; nombre: string; correo: string; diagnosticoCompletado: boolean }[];
+};
+
+export async function listarEmpresas(): Promise<EmpresaAdmin[]> {
+  const empresas = await prisma.empresa.findMany({
+    include: { clientes: { select: { id: true } } },
+    orderBy: { nombre: "asc" },
+  });
+
+  return empresas.map((empresa) => ({
+    id: empresa.id,
+    nombre: empresa.nombre,
+    contacto: empresa.contacto,
+    correo: empresa.correo,
+    participantes: empresa.clientes.length,
+  }));
+}
+
+export async function crearEmpresa(datos: {
+  nombre: string;
+  contacto: string;
+  correo: string;
+}): Promise<{ id: string; nombre: string }> {
+  const empresa = await prisma.empresa.create({ data: datos });
+  return { id: empresa.id, nombre: empresa.nombre };
+}
+
+// Sin filtro por rol, a diferencia de `filtroClientesPorRol`: la gestión de
+// empresas es de Administrador/Secretaria, que ya ven toda la cartera.
+export async function obtenerEmpresaDetalle(id: string): Promise<EmpresaDetalle | null> {
+  const empresa = await prisma.empresa.findUnique({
+    where: { id },
+    include: {
+      clientes: {
+        include: {
+          usuario: { select: { correo: true } },
+          diagnostico: { select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!empresa) return null;
+
+  return {
+    id: empresa.id,
+    nombre: empresa.nombre,
+    contacto: empresa.contacto,
+    correo: empresa.correo,
+    participantes: empresa.clientes.map((cliente) => ({
+      id: cliente.id,
+      nombre: cliente.nombreCompleto,
+      correo: cliente.usuario.correo,
+      diagnosticoCompletado: cliente.diagnostico !== null,
+    })),
+  };
+}
