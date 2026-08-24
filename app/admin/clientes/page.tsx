@@ -1,7 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Phone, Mail, ChevronLeft, ChevronRight, Clock, Video, MapPin, CalendarX } from "lucide-react";
+import {
+  Search,
+  Phone,
+  Mail,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Video,
+  MapPin,
+  CalendarX,
+  ClipboardList,
+  CreditCard,
+  TrendingUp,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -19,11 +34,68 @@ const LINEA_BADGE: Record<LineaAsesoriaAdmin, string> = {
   Deportivo: "bg-avanza-orange-light text-avanza-orange",
 };
 
+const EVALUACION_BADGE: Record<string, string> = {
+  PENDIENTE: "bg-avanza-orange-light text-avanza-orange",
+  APROBADA: "bg-avanza-green-light text-avanza-green-dark",
+  RECHAZADA: "bg-red-100 text-red-600",
+};
+
+const EVALUACION_LABEL: Record<string, string> = {
+  PENDIENTE: "Pendiente",
+  APROBADA: "Aprobada",
+  RECHAZADA: "Rechazada",
+};
+
+const METODO_PAGO_LABEL: Record<string, string> = {
+  TARJETA: "Tarjeta",
+  TRANSFERENCIA: "Transferencia",
+};
+
+type EvaluacionDetalle = {
+  id: string;
+  estado: string;
+  objetivoPrincipal: string;
+  principalDificultad: string;
+  tiempoDeseado: string;
+  createdAt: string;
+};
+
+type PagoDetalle = {
+  id: string;
+  monto: number;
+  metodo: string;
+  estado: string;
+  fecha: string | null;
+};
+
+type TareaDetalle = { id: string; label: string; completada: boolean };
+
 type ClienteDetalleData = ClienteAdmin & {
   edad: number;
   citas: CitaAdmin[];
+  evaluaciones: EvaluacionDetalle[];
   programas: { id: string; nombre: string; asignadoEn: string }[];
+  pagos: PagoDetalle[];
+  tareas: TareaDetalle[];
 };
+
+function formatMonto(valor: number): string {
+  return `RD$ ${new Intl.NumberFormat("es-DO", { maximumFractionDigits: 0 }).format(valor)}`;
+}
+
+/**
+ * Mismo criterio que `pagoVigente()` en `lib/server/cliente-queries.ts`: el
+ * PENDIENTE si existe; si no, el PAGADO más reciente. Se replica acá porque
+ * ese módulo es server-only y no se puede importar desde un componente cliente.
+ */
+function pagoVigenteAdmin(pagos: PagoDetalle[]): PagoDetalle | null {
+  const pendiente = pagos.find((p) => p.estado === "PENDIENTE");
+  if (pendiente) return pendiente;
+  const pagados = pagos
+    .filter((p) => p.estado === "PAGADO")
+    .sort((a, b) => (b.fecha ? Date.parse(b.fecha) : 0) - (a.fecha ? Date.parse(a.fecha) : 0));
+  return pagados[0] ?? null;
+}
 
 function ClienteDetalle({
   clienteId,
@@ -61,6 +133,12 @@ function ClienteDetalle({
       cancelado = true;
     };
   }, [clienteId]);
+
+  const evaluacion = cliente?.evaluaciones[0] ?? null;
+  const pago = cliente ? pagoVigenteAdmin(cliente.pagos) : null;
+  const tareas = cliente?.tareas ?? [];
+  const completadas = tareas.filter((t) => t.completada).length;
+  const progreso = tareas.length > 0 ? Math.round((completadas / tareas.length) * 100) : 0;
 
   const hoyIso = fechaHoyIso();
   const proximas = (cliente?.citas ?? [])
@@ -143,6 +221,135 @@ function ClienteDetalle({
               </ul>
             </section>
           )}
+
+          <section aria-label="Evaluación" className="mb-6">
+            <h2 className="mb-3 text-sm font-semibold text-gray-900">Evaluación</h2>
+            {!evaluacion ? (
+              <div className="flex items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                <ClipboardList className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                Sin evaluación registrada.
+              </div>
+            ) : (
+              <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Estado
+                  </p>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      EVALUACION_BADGE[evaluacion.estado] ?? "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {EVALUACION_LABEL[evaluacion.estado] ?? evaluacion.estado}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                    Objetivo principal
+                  </p>
+                  <p className="mt-0.5 text-sm text-gray-900">{evaluacion.objetivoPrincipal}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                    Principal dificultad
+                  </p>
+                  <p className="mt-0.5 text-sm text-gray-900">{evaluacion.principalDificultad}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                    Tiempo deseado
+                  </p>
+                  <p className="mt-0.5 text-sm text-gray-900">{evaluacion.tiempoDeseado}</p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section aria-label="Pago" className="mb-6">
+            <h2 className="mb-3 text-sm font-semibold text-gray-900">Pago</h2>
+            {!pago ? (
+              <div className="flex items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                <CreditCard className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                Sin pagos registrados.
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">{formatMonto(pago.monto)}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {METODO_PAGO_LABEL[pago.metodo] ?? pago.metodo}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                    pago.estado === "PAGADO"
+                      ? "bg-avanza-green-light text-avanza-green-dark"
+                      : "bg-avanza-orange-light text-avanza-orange"
+                  }`}
+                >
+                  {pago.estado === "PAGADO" ? "Pagado" : "Pendiente"}
+                </span>
+              </div>
+            )}
+          </section>
+
+          <section aria-label="Progreso" className="mb-6">
+            <h2 className="mb-3 text-sm font-semibold text-gray-900">Progreso</h2>
+            {tareas.length === 0 ? (
+              <div className="flex items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                <TrendingUp className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                Sin tareas asignadas.
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                    <TrendingUp className="h-4 w-4 text-avanza-green" aria-hidden="true" />
+                    Avance
+                  </p>
+                  <span className="text-sm font-bold tabular-nums text-avanza-green">
+                    {progreso}%
+                  </span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-label="Progreso general del cliente"
+                  aria-valuenow={progreso}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  className="mb-4 h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
+                >
+                  <div
+                    className="h-full rounded-full bg-avanza-green transition-[width] duration-500 ease-out"
+                    style={{ width: `${progreso}%` }}
+                  />
+                </div>
+                <ul className="space-y-2">
+                  {tareas.map((tarea) => (
+                    <li key={tarea.id} className="flex items-center gap-2.5 text-sm">
+                      {tarea.completada ? (
+                        <CheckSquare
+                          className="h-4 w-4 shrink-0 text-avanza-green"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <Square className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                      )}
+                      <span
+                        className={
+                          tarea.completada
+                            ? "text-gray-500 line-through decoration-gray-400/50"
+                            : "text-gray-900"
+                        }
+                      >
+                        {tarea.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
 
           <section aria-label="Próximas citas" className="mb-6">
             <h2 className="mb-3 text-sm font-semibold text-gray-900">Próximas citas</h2>

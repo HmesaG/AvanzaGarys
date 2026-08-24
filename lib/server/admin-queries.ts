@@ -176,9 +176,19 @@ export type ClienteDetalle = ClienteAdmin & {
     id: string;
     estado: string;
     objetivoPrincipal: string;
+    principalDificultad: string;
+    tiempoDeseado: string;
     createdAt: string;
   }[];
   programas: { id: string; nombre: string; asignadoEn: string }[];
+  pagos: {
+    id: string;
+    monto: number;
+    metodo: string;
+    estado: string;
+    fecha: string | null;
+  }[];
+  tareas: { id: string; label: string; completada: boolean }[];
 };
 
 export async function obtenerClienteDetalle(
@@ -194,6 +204,8 @@ export async function obtenerClienteDetalle(
       citas: { orderBy: { fecha: "desc" } },
       evaluaciones: { orderBy: { createdAt: "desc" } },
       programasAsignados: { include: { programa: true }, orderBy: { createdAt: "desc" } },
+      pagos: true,
+      tareas: { orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -224,12 +236,27 @@ export async function obtenerClienteDetalle(
       id: evaluacion.id,
       estado: evaluacion.estado,
       objetivoPrincipal: evaluacion.objetivoPrincipal,
+      principalDificultad: evaluacion.principalDificultad,
+      tiempoDeseado: evaluacion.tiempoDeseado,
       createdAt: evaluacion.createdAt.toISOString(),
     })),
     programas: cliente.programasAsignados.map((asignado) => ({
       id: asignado.programa.id,
       nombre: asignado.programa.nombre,
       asignadoEn: asignado.createdAt.toISOString(),
+    })),
+    pagos: cliente.pagos.map((pago) => ({
+      id: pago.id,
+      // `monto` es Decimal: se convierte a number para que sea serializable a JSON.
+      monto: Number(pago.monto),
+      metodo: pago.metodo,
+      estado: pago.estado,
+      fecha: pago.fecha?.toISOString() ?? null,
+    })),
+    tareas: cliente.tareas.map((tarea) => ({
+      id: tarea.id,
+      label: tarea.label,
+      completada: tarea.completada,
     })),
   };
 }

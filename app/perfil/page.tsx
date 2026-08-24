@@ -4,16 +4,31 @@
 // edición hace PATCH sobre `Cliente`/`Usuario`. Cerrar sesión invalida la sesión
 // real en Redis vía `/api/auth/logout`.
 import { useEffect, useState, FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Phone, Mail, Pencil, LogOut, Briefcase, X } from "lucide-react";
+import {
+  User,
+  Phone,
+  Mail,
+  Pencil,
+  LogOut,
+  Briefcase,
+  X,
+  FileText,
+  ClipboardList,
+  Award,
+  CreditCard,
+} from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import TextField from "@/components/TextField";
 import {
   actualizarPerfil,
+  obtenerEstado,
   obtenerPerfil,
   tipoAsesoriaLabel,
+  type EstadoCliente,
   type PerfilCliente,
 } from "@/lib/cliente-api";
 import { erpAlert, successToast } from "@/lib/alerts";
@@ -23,6 +38,22 @@ type FormState = {
   correo: string;
 };
 
+const EVALUACION_CHIP: Record<string, string> = {
+  PENDIENTE: "bg-avanza-orange-light text-avanza-orange",
+  APROBADA: "bg-avanza-green-light text-avanza-green-dark",
+  RECHAZADA: "bg-red-100 text-red-600",
+};
+
+const EVALUACION_LABEL: Record<string, string> = {
+  PENDIENTE: "Pendiente",
+  APROBADA: "Aprobada",
+  RECHAZADA: "Rechazada",
+};
+
+function formatMonto(valor: number): string {
+  return `RD$ ${new Intl.NumberFormat("es-DO", { maximumFractionDigits: 0 }).format(valor)}`;
+}
+
 export default function PerfilPage() {
   const router = useRouter();
   const [perfil, setPerfil] = useState<PerfilCliente | null>(null);
@@ -31,6 +62,7 @@ export default function PerfilPage() {
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState<FormState | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [estado, setEstado] = useState<EstadoCliente | null>(null);
 
   useEffect(() => {
     async function cargar() {
@@ -44,6 +76,17 @@ export default function PerfilPage() {
       }
     }
     void cargar();
+
+    // "Mi expediente" es contenido adicional: si falla, el resto del perfil
+    // sigue funcionando (mismo patrón defensivo que /home).
+    async function cargarEstado() {
+      try {
+        setEstado(await obtenerEstado());
+      } catch {
+        // Sin datos de expediente, la sección simplemente no se muestra.
+      }
+    }
+    void cargarEstado();
   }, []);
 
   function handleEmpezarEdicion() {
@@ -209,6 +252,59 @@ export default function PerfilPage() {
                 {tipoAsesoriaLabel(perfil.tipoAsesoria)}
               </span>
             </section>
+
+            {estado && (
+              <section
+                aria-label="Mi expediente"
+                className="mb-6 rounded-2xl border border-gray-200 bg-white p-5"
+              >
+                <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                  <FileText className="h-4 w-4 text-avanza-green" aria-hidden="true" />
+                  Mi expediente
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href="/evaluacion"
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-opacity duration-150 hover:opacity-80 ${
+                      estado.evaluacion
+                        ? (EVALUACION_CHIP[estado.evaluacion.estado] ?? "bg-gray-100 text-gray-600")
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                    {estado.evaluacion
+                      ? `Evaluación: ${EVALUACION_LABEL[estado.evaluacion.estado] ?? estado.evaluacion.estado}`
+                      : "Sin evaluación"}
+                  </Link>
+
+                  <Link
+                    href="/programa"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-avanza-blue-light px-3 py-1.5 text-sm font-medium text-avanza-blue transition-opacity duration-150 hover:opacity-80"
+                  >
+                    <Award className="h-3.5 w-3.5" aria-hidden="true" />
+                    {estado.programaAsignado
+                      ? estado.programaAsignado.nombre
+                      : "Sin programa asignado"}
+                  </Link>
+
+                  <Link
+                    href="/programa"
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-opacity duration-150 hover:opacity-80 ${
+                      estado.pago
+                        ? estado.pago.estado === "PAGADO"
+                          ? "bg-avanza-green-light text-avanza-green-dark"
+                          : "bg-avanza-orange-light text-avanza-orange"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+                    {estado.pago
+                      ? `${estado.pago.estado === "PAGADO" ? "Pagado" : "Pendiente"} · ${formatMonto(estado.pago.monto)}`
+                      : "Sin pagos registrados"}
+                  </Link>
+                </div>
+              </section>
+            )}
 
             <button
               type="button"
