@@ -1,6 +1,9 @@
 # dependencies
 /node_modules
 
+# prisma 7 generated client
+/generated/
+
 # next.js
 /.next/
 /out/

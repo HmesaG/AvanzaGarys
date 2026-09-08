@@ -1,0 +1,206 @@
+// Schema Prisma 7 para Avanza. Ver ADR 007 (H:\GMV\ObsidianVault\01-Proyectos\Avanza\Decisiones\007-prisma7-redis-nextjs-middleware-cuid.md)
+// para el razonamiento detrás de Prisma 7 (driver adapter) y CUID como PK.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Rol {
+  ADMINISTRADOR
+  COACH
+  SECRETARIA
+  CLIENTE
+}
+
+enum LineaAsesoria {
+  PERSONAL
+  CORPORATIVO
+  DEPORTIVO
+}
+
+enum EstadoCita {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+  COMPLETADA
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  VENCIDO
+  CANCELADO
+}
+
+enum RemitentePago {
+  CLIENTE
+  ASESOR
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nombre       String
+  rol          Rol
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Si rol == CLIENTE, existe una fila 1:1 en Cliente.
+  cliente Cliente?
+
+  // Citas y evaluaciones donde este usuario actúa como coach.
+  citasComoCoach       Cita[]       @relation("CitaCoach")
+  evaluacionesRevisadas Evaluacion[] @relation("EvaluacionRevisadaPor")
+  clientesAsignados    Cliente[]    @relation("ClienteCoach")
+  mensajesEnviados     Mensaje[]    @relation("MensajeDe")
+
+  @@map("usuarios")
+}
+
+model Empresa {
+  id        String   @id @default(cuid())
+  nombre    String
+  ruc       String?
+  telefono  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientes Cliente[]
+
+  @@map("empresas")
+}
+
+model Cliente {
+  id        String        @id @default(cuid())
+  usuarioId String        @unique
+  usuario   Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  telefono  String?
+  linea     LineaAsesoria
+
+  empresaId String?
+  empresa   Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+
+  // Coach asignado (nullable: cliente puede no tener coach asignado aún —
+  // ver ADR 007, hallazgo del bug de deadlock en filtro de cartera).
+  coachId String?
+  coach   Usuario? @relation("ClienteCoach", fields: [coachId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evaluaciones Evaluacion[]
+  programas    Programa[]
+  citas        Cita[]
+  pagos        Pago[]
+  mensajes     Mensaje[]
+
+  @@index([coachId])
+  @@index([empresaId])
+  @@map("clientes")
+}
+
+model Evaluacion {
+  id        String   @id @default(cuid())
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  objetivoPrincipal String  @db.Text
+  tiempoObjetivo    String?
+  respuestas        Json
+
+  // Nullable hasta que un coach la revise. NO filtrar cartera del coach por
+  // este campo sin distinguir "pendientes globales" vs "mis clientes" —
+  // ver ADR 007, hallazgo de bug de deadlock.
+  revisadaPorId String?
+  revisadaPor   Usuario? @relation("EvaluacionRevisadaPor", fields: [revisadaPorId], references: [id], onDelete: SetNull)
+  revisadaAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clienteId])
+  @@index([revisadaPorId])
+  @@map("evaluaciones")
+}
+
+model Programa {
+  id        String   @id @default(cuid())
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  nombre    String
+  descripcion String? @db.Text
+  progreso  Int      @default(0)
+  activo    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clienteId])
+  @@map("programas")
+}
+
+model Cita {
+  id        String   @id @default(cuid())
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  coachId String?
+  coach   Usuario? @relation("CitaCoach", fields: [coachId], references: [id], onDelete: SetNull)
+
+  fecha     DateTime
+  modalidad String     @default("Virtual")
+  estado    EstadoCita @default(PENDIENTE)
+  notas     String?    @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clienteId])
+  @@index([coachId])
+  @@index([fecha])
+  @@map("citas")
+}
+
+model Pago {
+  id        String   @id @default(cuid())
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  monto     Decimal    @db.Decimal(10, 2)
+  estado    EstadoPago @default(PENDIENTE)
+  concepto  String?
+  fechaPago DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clienteId])
+  @@map("pagos")
+}
+
+model Mensaje {
+  id        String   @id @default(cuid())
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  deId String
+  de   Usuario @relation("MensajeDe", fields: [deId], references: [id], onDelete: Cascade)
+
+  texto String   @db.Text
+  leido Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([clienteId])
+  @@index([deId])
+  @@map("mensajes")
+}
