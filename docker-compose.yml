@@ -1,0 +1,61 @@
+services:
+  avanza:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: avanza
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "mysql://${MARIADB_USER:-avanza_app}:${MARIADB_PASSWORD:-avanza_dev_password_change_me}@mariadb:3306/${MARIADB_DATABASE:-avanza}"
+      REDIS_URL: "redis://redis:6379"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:11
+    container_name: avanza-mariadb
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-avanza}
+      MARIADB_USER: ${MARIADB_USER:-avanza_app}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-avanza_dev_password_change_me}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-avanza_root_dev_password_change_me}
+    ports:
+      # Host 3307 -> evitar colisión con otras instancias locales de MariaDB/MySQL.
+      - "${MARIADB_HOST_PORT:-3307}:3306"
+    volumes:
+      - avanza_mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: avanza-redis
+    # Sin mapeo de puertos al host por defecto: otro proyecto en esta máquina
+    # ya usa 6379:6379 (svrx-road-redis_cache-1). El servicio `avanza` accede
+    # por la red interna de docker-compose (redis:6379). Descomentar solo si
+    # se necesita acceso directo desde el host, con REDIS_HOST_PORT distinto.
+    # ports:
+    #   - "${REDIS_HOST_PORT:-6380}:6379"
+    volumes:
+      - avanza_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  avanza_mariadb_data:
+  avanza_redis_data:
