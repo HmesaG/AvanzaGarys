@@ -40,12 +40,12 @@ services:
   redis:
     image: redis:7-alpine
     container_name: avanza-redis
-    # Sin mapeo de puertos al host por defecto: otro proyecto en esta máquina
-    # ya usa 6379:6379 (svrx-road-redis_cache-1). El servicio `avanza` accede
-    # por la red interna de docker-compose (redis:6379). Descomentar solo si
-    # se necesita acceso directo desde el host, con REDIS_HOST_PORT distinto.
-    # ports:
-    #   - "${REDIS_HOST_PORT:-6380}:6379"
+    # Otro proyecto en esta máquina ya usa 6379:6379 (svrx-road-redis_cache-1),
+    # por eso el mapeo al host va por REDIS_HOST_PORT (6380 por defecto).
+    # Necesario para correr `next dev` desde el host contra este Redis; el
+    # servicio `avanza` dentro de compose sigue usando la red interna (redis:6379).
+    ports:
+      - "${REDIS_HOST_PORT:-6380}:6379"
     volumes:
       - avanza_redis_data:/data
     healthcheck:
