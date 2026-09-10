@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import TextField from "@/components/TextField";
-import { successToast } from "@/lib/alerts";
+import { successToast, errorToast } from "@/lib/alerts";
+import { ErrorApi, pedirJson } from "@/lib/api-navegador";
 
 type FormState = {
   correo: string;
@@ -35,8 +36,15 @@ function validateField(name: keyof FormState, value: string): string | undefined
   }
 }
 
-export default function LoginPage() {
+/** Sólo se sigue un `next` relativo propio de la app: evita open redirect vía `?next=https://evil.com`. */
+function destinoSeguro(next: string | null): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +58,7 @@ export default function LoginPage() {
     setErrors((prev) => ({ ...prev, [field]: error }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
     const nextErrors: Errors = {};
@@ -62,13 +70,27 @@ export default function LoginPage() {
 
     if (Object.keys(nextErrors).length > 0) return;
 
-    // Sin backend real (Fase 1): cualquier submit con datos válidos se acepta como login mock.
     setSubmitting(true);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    try {
+      const { usuario } = await pedirJson<{ usuario: { rol: string } }>("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo: form.correo, password: form.password }),
+      });
+
       successToast("Sesión iniciada");
-      router.push("/home");
-    }, 400);
+      // Staff (ADMINISTRADOR/COACH/SECRETARIA) va al panel; CLIENTE a su home.
+      // El `next` del middleware (si venía de una ruta protegida) tiene prioridad.
+      const destino =
+        destinoSeguro(searchParams.get("next")) ?? (usuario.rol === "CLIENTE" ? "/home" : "/admin");
+      router.push(destino);
+    } catch (error) {
+      const mensaje =
+        error instanceof ErrorApi ? error.message : "No se pudo iniciar sesión. Intenta de nuevo.";
+      errorToast(mensaje);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -135,5 +157,13 @@ export default function LoginPage() {
         </p>
       </main>
     </PageTransition>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

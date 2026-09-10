@@ -1,0 +1,104 @@
+"use client";
+
+// Parte interactiva de /admin/mas. La página es un componente de servidor
+// (necesita la sesión para el nombre y el rol) y delega acá lo que requiere
+// eventos: los toasts de las opciones futuras y el cierre de sesión real.
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Settings, Bell, HelpCircle, LogOut, ChevronRight } from "lucide-react";
+import AdminHeader from "@/components/AdminHeader";
+import AdminBottomNav from "@/components/AdminBottomNav";
+import PageTransition from "@/components/PageTransition";
+import { erpAlert, erpToast, errorToast } from "@/lib/alerts";
+import { pedirJson } from "@/lib/api-navegador";
+import { ROL_LABEL, iniciales } from "@/lib/admin-formato";
+import type { Rol } from "@/generated/prisma/client";
+
+const OPCIONES = [
+  { icon: Settings, label: "Configuración" },
+  { icon: Bell, label: "Notificaciones" },
+  { icon: HelpCircle, label: "Ayuda y soporte" },
+] as const;
+
+export default function AjustesAdmin({ nombre, rol }: { nombre: string; rol: Rol }) {
+  const router = useRouter();
+  const [cerrando, setCerrando] = useState(false);
+
+  async function handleCerrarSesion() {
+    const result = await erpAlert.fire({
+      icon: "question",
+      title: "¿Cerrar sesión?",
+      text: "Vas a salir del panel administrativo en este dispositivo.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, cerrar sesión",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#dc2626",
+    });
+    if (!result.isConfirmed) return;
+
+    setCerrando(true);
+    try {
+      // El POST invalida la sesión en Redis y borra la cookie. Antes esto sólo
+      // navegaba a /login, con la sesión todavía viva del lado del servidor.
+      await pedirJson("/api/auth/logout", { method: "POST" });
+    } catch {
+      setCerrando(false);
+      errorToast("No se pudo cerrar la sesión. Intentá de nuevo.");
+      return;
+    }
+
+    router.replace("/login");
+    // Invalida el caché del router: sin esto, volver atrás puede mostrar el
+    // panel renderizado con la sesión ya cerrada.
+    router.refresh();
+  }
+
+  return (
+    <PageTransition footer={<AdminBottomNav />}>
+      <AdminHeader title="Más" />
+
+      <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
+        <section className="mb-6 flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-avanza-green-light text-sm font-semibold text-avanza-green-dark"
+            aria-hidden="true"
+          >
+            {iniciales(nombre)}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-gray-900">{nombre}</p>
+            <p className="text-xs text-gray-500">{ROL_LABEL[rol]}</p>
+          </div>
+        </section>
+
+        <ul className="mb-6 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          {OPCIONES.map(({ icon: Icon, label }) => (
+            <li key={label}>
+              <button
+                type="button"
+                onClick={() =>
+                  erpToast.fire({ icon: "info", title: `${label} disponible próximamente` })
+                }
+                className="flex min-h-[52px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
+              >
+                <Icon className="h-4 w-4 text-gray-500" aria-hidden="true" />
+                <span className="flex-1 text-sm font-medium text-gray-900">{label}</span>
+                <ChevronRight className="h-4 w-4 text-gray-300" aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={handleCerrarSesion}
+          disabled={cerrando}
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-5 font-semibold text-red-600 transition-all duration-150 hover:bg-red-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          {cerrando ? "Cerrando sesión…" : "Cerrar sesión"}
+        </button>
+      </main>
+    </PageTransition>
+  );
+}
