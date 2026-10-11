@@ -5,7 +5,7 @@
 // bandejas quede documentada en un solo lugar.
 import { db } from "./prisma";
 import { EstadoPago } from "../generated/prisma/client";
-import type { LineaAsesoria } from "../generated/prisma/client";
+import type { EstadoPlanGrow, LineaAsesoria } from "../generated/prisma/client";
 
 function inicioDelDia(fecha = new Date()): Date {
   return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
@@ -233,6 +233,71 @@ export async function obtenerEmpresaDetalle(empresaId: string) {
       diagnosticoCompletado: c.diagnostico !== null,
     })),
   };
+}
+
+// --- Planes GROW (Fase 4b, prototipo sin IA) --------------------------------
+
+export async function listarPlanesGrow() {
+  return db.planGrow.findMany({
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      tipo: true,
+      semanaActual: true,
+      totalSemanas: true,
+      estado: true,
+      updatedAt: true,
+      cliente: { select: { id: true, usuario: { select: { nombre: true, email: true } } } },
+    },
+  });
+}
+
+export async function obtenerPlanGrowDetalle(clienteId: string) {
+  return db.planGrow.findFirst({
+    where: { clienteId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      tipo: true,
+      semanaActual: true,
+      totalSemanas: true,
+      estado: true,
+      cliente: { select: { id: true, usuario: { select: { nombre: true, email: true } } } },
+      sesiones: {
+        orderBy: { semana: "asc" },
+        select: {
+          id: true,
+          semana: true,
+          etapa: true,
+          respuestas: true,
+          notaCoach: true,
+          completadaAt: true,
+          compromisos: {
+            select: { id: true, accion: true, fechaPrevista: true, estado: true, resultado: true },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function agregarNotaSesion(sesionId: string, nota: string) {
+  return db.sesionGrow.update({
+    where: { id: sesionId },
+    data: { notaCoach: nota },
+    select: { id: true, notaCoach: true },
+  });
+}
+
+export async function cambiarEstadoPlan(
+  planId: string,
+  estado: Extract<EstadoPlanGrow, "ACTIVO" | "PAUSADO" | "CERRADO">,
+) {
+  return db.planGrow.update({
+    where: { id: planId },
+    data: { estado },
+    select: { id: true, estado: true },
+  });
 }
 
 export async function listarCitas(filtro: FiltroCitas) {

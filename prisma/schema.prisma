@@ -48,6 +48,26 @@ enum NivelComunicacion {
   DEFICIENTE
 }
 
+enum EstadoPlanGrow {
+  ACTIVO
+  EN_SEGUIMIENTO
+  PAUSADO
+  CERRADO
+}
+
+enum EtapaGrow {
+  GOAL
+  REALITY
+  OPTIONS
+  WILL
+}
+
+enum EstadoCompromiso {
+  PENDIENTE
+  CUMPLIDO
+  NO_CUMPLIDO
+}
+
 model Usuario {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -109,6 +129,7 @@ model Cliente {
   mensajes     Mensaje[]
   tareas       Tarea[]
   diagnostico  Diagnostico?
+  planesGrow   PlanGrow[]
 
   @@index([coachId])
   @@index([empresaId])
@@ -217,6 +238,66 @@ model Tarea {
 
   @@index([clienteId])
   @@map("tareas")
+}
+
+model PlanGrow {
+  id        String  @id @default(cuid())
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  // Fijo por ahora ("LIDERAZGO") — prototipo de un solo plan antes de
+  // generalizar a un catálogo (spec GROW, sección 15).
+  tipo          String         @default("LIDERAZGO")
+  semanaActual  Int            @default(1)
+  totalSemanas  Int            @default(4)
+  estado        EstadoPlanGrow @default(ACTIVO)
+
+  sesiones SesionGrow[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clienteId])
+  @@map("planes_grow")
+}
+
+model SesionGrow {
+  id     String   @id @default(cuid())
+  planId String
+  plan   PlanGrow @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  semana Int
+  etapa  EtapaGrow
+
+  // Array de {pregunta, respuesta} — preguntas fijas de lib/grow-constants.ts
+  // (sin IA todavía, ver contexto de la migración).
+  respuestas    Json?
+  notaCoach     String?   @db.Text
+  completadaAt  DateTime?
+
+  compromisos CompromisoGrow[]
+
+  createdAt DateTime @default(now())
+
+  @@index([planId])
+  @@map("sesiones_grow")
+}
+
+model CompromisoGrow {
+  id        String     @id @default(cuid())
+  sesionId  String
+  sesion    SesionGrow @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+
+  accion        String           @db.Text
+  fechaPrevista DateTime
+  estado        EstadoCompromiso @default(PENDIENTE)
+  resultado     String?          @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sesionId])
+  @@map("compromisos_grow")
 }
 
 model Diagnostico {

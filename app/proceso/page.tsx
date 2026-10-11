@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckSquare, Square, Target, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { CheckSquare, Square, Target, TrendingUp, Rocket, ChevronRight } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -42,6 +43,22 @@ export default function ProcesoPage() {
     <PageTransition footer={<BottomNav />}>
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8 safe-top">
         <BackHeader title="Mi proceso" subtitle="Sigue tu avance y tareas asignadas" />
+
+        {estado?.puedeAgendar && (
+          <Link
+            href="/plan-grow"
+            className="mb-6 flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 hover:border-avanza-green/40 active:scale-[0.99]"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-avanza-orange-light">
+              <Rocket className="h-5 w-5 text-avanza-orange" aria-hidden="true" />
+            </span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900">Mi plan de desarrollo</p>
+              <p className="text-xs text-gray-500">Sesiones GROW y compromisos</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-300" aria-hidden="true" />
+          </Link>
+        )}
 
         <section
           aria-label="Objetivo principal"

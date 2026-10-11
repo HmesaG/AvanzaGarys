@@ -5,7 +5,7 @@
 // eventos: los toasts de las opciones futuras y el cierre de sesión real.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Bell, HelpCircle, LogOut, ChevronRight, Building2 } from "lucide-react";
+import { Settings, Bell, HelpCircle, LogOut, ChevronRight, Building2, Rocket } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -76,6 +76,17 @@ export default function AjustesAdmin({ nombre, rol }: { nombre: string; rol: Rol
         </section>
 
         <ul className="mb-6 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <li>
+            <button
+              type="button"
+              onClick={() => router.push("/admin/planes-grow")}
+              className="flex min-h-[52px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
+            >
+              <Rocket className="h-4 w-4 text-gray-500" aria-hidden="true" />
+              <span className="flex-1 text-sm font-medium text-gray-900">Planes GROW</span>
+              <ChevronRight className="h-4 w-4 text-gray-300" aria-hidden="true" />
+            </button>
+          </li>
           {puedeVerEmpresas && (
             <li>
               <button

@@ -24,6 +24,7 @@ export const RUTAS_PROTEGIDAS = [
   "/perfil",
   "/home",
   "/diagnostico",
+  "/plan-grow",
 ] as const;
 
 /** Rutas públicas a las que se redirige o que nunca deben pedir sesión. */

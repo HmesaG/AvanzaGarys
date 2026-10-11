@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Sparkles,
   Building2,
+  Rocket,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -193,6 +194,18 @@ export default function HomePage() {
                       icon: Building2,
                       color: "text-avanza-blue",
                       bg: "bg-avanza-blue-light",
+                    },
+                  ]
+                : []),
+              ...(estado?.puedeAgendar
+                ? [
+                    {
+                      href: "/plan-grow",
+                      label: "Mi plan",
+                      desc: "Desarrollo GROW",
+                      icon: Rocket,
+                      color: "text-avanza-orange",
+                      bg: "bg-avanza-orange-light",
                     },
                   ]
                 : []),
