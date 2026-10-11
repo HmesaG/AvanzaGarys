@@ -6,9 +6,9 @@ import BackHeader from "@/components/BackHeader";
 import PageTransition from "@/components/PageTransition";
 import TextAreaField from "@/components/TextAreaField";
 import SelectField from "@/components/SelectField";
-import { saveEvaluacion } from "@/lib/client-state";
+import { enviarEvaluacion, ApiFetchError } from "@/lib/cliente-api";
 import { OPCIONES_TIEMPO } from "@/lib/mock-data";
-import { successToast } from "@/lib/alerts";
+import { successToast, erpAlert } from "@/lib/alerts";
 
 type FormState = {
   objetivoPrincipal: string;
@@ -48,7 +48,7 @@ export default function EvaluacionPage() {
     setErrors((prev) => ({ ...prev, [field]: validateField(field, form[field]) }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
     const nextErrors: Errors = {};
@@ -60,12 +60,20 @@ export default function EvaluacionPage() {
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
-    saveEvaluacion(form);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await enviarEvaluacion({
+        objetivoPrincipal: form.objetivoPrincipal,
+        principalDificultad: form.principalDificultad,
+        tiempoDeseado: form.tiempoDeseado,
+      });
       successToast("Evaluación guardada");
-      router.push("/agenda");
-    }, 400);
+      router.push("/programa");
+    } catch (error) {
+      const mensaje = error instanceof ApiFetchError ? error.message : "No se pudo guardar la evaluación";
+      await erpAlert.fire({ icon: "error", title: "Algo salió mal", text: mensaje });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -126,7 +134,7 @@ export default function EvaluacionPage() {
             disabled={submitting}
             className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-xl bg-avanza-green px-5 font-semibold text-white transition-all duration-150 hover:bg-avanza-green-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? "Guardando..." : "Continuar a agenda"}
+            {submitting ? "Guardando..." : "Continuar"}
           </button>
         </form>
       </main>

@@ -2,8 +2,12 @@ import type { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { ApiError, jsonOk, leerJson, manejarError, verificarOrigen } from "@/lib/http";
 import { db } from "@/lib/prisma";
-import { textoOpcional, textoRequerido } from "@/lib/validacion";
+import { tareasGenericasParaCrear } from "@/lib/cliente-queries";
+import { montoValido, textoOpcional, textoRequerido } from "@/lib/validacion";
 import { Rol } from "@/generated/prisma/client";
+
+/** Monto por defecto cuando el coach no especifica uno al aprobar. */
+const MONTO_PROGRAMA_DEFAULT = 5000;
 
 /**
  * Aprueba una evaluación de la bandeja global: la marca como revisada, toma al
@@ -21,6 +25,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const descripcionPrograma = textoOpcional(cuerpo.descripcionPrograma, "descripcionPrograma", {
       max: 2000,
     });
+    const monto =
+      cuerpo.monto === undefined ? MONTO_PROGRAMA_DEFAULT : montoValido(cuerpo.monto, "monto");
 
     const resultado = await db.$transaction(async (tx) => {
       const evaluacion = await tx.evaluacion.findUnique({
@@ -69,11 +75,27 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         select: { id: true, nombre: true, descripcion: true, progreso: true, activo: true },
       });
 
+      // Pago pendiente a la espera de que el cliente lo registre desde
+      // /programa, y 3 tareas genéricas de arranque — ambos en la misma
+      // transacción que el programa, mismo criterio que el resto del gate
+      // evaluación→programa→consentimiento→pago.
+      const pago = await tx.pago.create({
+        data: {
+          clienteId: evaluacion.clienteId,
+          monto,
+          concepto: nombrePrograma,
+        },
+        select: { id: true, monto: true, estado: true },
+      });
+
+      await tx.tarea.createMany({ data: tareasGenericasParaCrear(evaluacion.clienteId) });
+
       return {
         evaluacionId: evaluacion.id,
         clienteId: evaluacion.clienteId,
         coachId: evaluacion.cliente.coachId ?? usuario.id,
         programa,
+        pago: { ...pago, monto: Number(pago.monto) },
       };
     });
 

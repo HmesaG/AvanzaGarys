@@ -11,21 +11,18 @@ import {
   Target,
   ArrowRight,
   Sparkles,
+  Building2,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
-import {
-  getClienteState,
-  tipoAsesoriaLabel,
-  type ClienteState,
-} from "@/lib/client-state";
-import { OBJETIVO_PRINCIPAL_MOCK, PROGRESO_MOCK } from "@/lib/mock-data";
+import { obtenerEstado, obtenerPerfil, type EstadoCliente } from "@/lib/cliente-api";
+import { tipoAsesoriaLabel, type TipoAsesoria } from "@/lib/mock-data";
 
 const ACCESOS = [
   {
-    href: "/registro",
-    label: "Registro",
-    desc: "Tus datos",
+    href: "/perfil",
+    label: "Mis datos",
+    desc: "Tu perfil",
     icon: ClipboardList,
     color: "text-avanza-green",
     bg: "bg-avanza-green-light",
@@ -65,14 +62,17 @@ const ACCESOS = [
 ] as const;
 
 export default function HomePage() {
-  const [state, setState] = useState<ClienteState | null>(null);
+  const [estado, setEstado] = useState<EstadoCliente | null>(null);
+  const [nombre, setNombre] = useState<string | undefined>();
 
   useEffect(() => {
-    setState(getClienteState());
+    obtenerEstado().then(setEstado);
+    obtenerPerfil().then((perfil) => setNombre(perfil.nombre.split(" ")[0]));
   }, []);
 
-  const nombre = state?.registro?.nombreCompleto?.split(" ")[0];
-  const tipo = state?.registro?.tipoAsesoria;
+  const tipo = estado?.linea.toLowerCase() as TipoAsesoria | undefined;
+  const progreso = estado?.progreso.porcentaje ?? 0;
+  const objetivo = estado?.evaluacion?.objetivoPrincipal;
 
   return (
     <PageTransition footer={<BottomNav />}>
@@ -92,7 +92,7 @@ export default function HomePage() {
 
         {/* Próxima sesión */}
         <section aria-label="Próxima sesión" className="mb-4">
-          {state?.sesion ? (
+          {estado?.proximaCita ? (
             <Link
               href="/agenda"
               className="block rounded-2xl bg-avanza-green p-5 text-white shadow-sm transition-transform duration-150 active:scale-[0.98]"
@@ -104,10 +104,15 @@ export default function HomePage() {
                     Próxima sesión
                   </p>
                   <p className="mt-2 text-lg font-bold">
-                    {state.sesion.fechaLabel}
+                    {new Intl.DateTimeFormat("es-DO", { dateStyle: "long" }).format(
+                      new Date(estado.proximaCita.fecha),
+                    )}
                   </p>
                   <p className="text-sm text-avanza-green-light">
-                    {state.sesion.hora} · {state.sesion.modalidad}
+                    {new Intl.DateTimeFormat("es-DO", { hour: "2-digit", minute: "2-digit" }).format(
+                      new Date(estado.proximaCita.fecha),
+                    )}{" "}
+                    · {estado.proximaCita.modalidad}
                   </p>
                 </div>
                 <ArrowRight className="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -148,25 +153,27 @@ export default function HomePage() {
               className="text-sm font-bold tabular-nums text-avanza-green"
               aria-hidden="true"
             >
-              {PROGRESO_MOCK}%
+              {progreso}%
             </span>
           </div>
           <div
             role="progressbar"
             aria-label="Progreso general del proceso"
-            aria-valuenow={PROGRESO_MOCK}
+            aria-valuenow={progreso}
             aria-valuemin={0}
             aria-valuemax={100}
             className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
           >
             <div
               className="h-full rounded-full bg-avanza-green transition-[width] duration-500 ease-out"
-              style={{ width: `${PROGRESO_MOCK}%` }}
+              style={{ width: `${progreso}%` }}
             />
           </div>
-          <p className="mt-3 text-sm text-gray-600">
-            Objetivo: <span className="font-medium text-gray-900">{OBJETIVO_PRINCIPAL_MOCK}</span>
-          </p>
+          {objetivo && (
+            <p className="mt-3 text-sm text-gray-600">
+              Objetivo: <span className="font-medium text-gray-900">{objetivo}</span>
+            </p>
+          )}
         </section>
 
         {/* Accesos rápidos */}
@@ -175,7 +182,21 @@ export default function HomePage() {
             Accesos rápidos
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            {ACCESOS.map(({ href, label, desc, icon: Icon, color, bg }) => (
+            {[
+              ...ACCESOS,
+              ...(estado?.requiereDiagnostico && !estado.diagnosticoCompletado
+                ? [
+                    {
+                      href: "/diagnostico",
+                      label: "Diagnóstico",
+                      desc: "Cuestionario organizacional",
+                      icon: Building2,
+                      color: "text-avanza-blue",
+                      bg: "bg-avanza-blue-light",
+                    },
+                  ]
+                : []),
+            ].map(({ href, label, desc, icon: Icon, color, bg }) => (
               <Link
                 key={href}
                 href={href}

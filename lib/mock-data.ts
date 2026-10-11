@@ -1,4 +1,7 @@
-// Datos mock — Fase 1 (sin backend). Toda la persistencia real llega en fases posteriores.
+// Constantes de presentación compartidas por varias pantallas (líneas de
+// asesoría, horarios de agenda, opciones de tiempo deseado en la
+// evaluación). Ya no hay datos mock acá — todo lo demás se migró a
+// lib/cliente-api.ts / lib/admin-queries.ts contra la API real.
 
 export type TipoAsesoria = "personal" | "corporativo" | "deportivo";
 
@@ -52,58 +55,7 @@ export const HORARIOS_DISPONIBLES = [
   "05:00 PM",
 ];
 
-export type Mensaje = {
-  id: string;
-  de: "cliente" | "asesor";
-  texto: string;
-  hora: string;
-};
+export function tipoAsesoriaLabel(tipo: TipoAsesoria | "" | undefined): string {
+  return TIPOS_ASESORIA.find((t) => t.id === tipo)?.label ?? "Avanza";
+}
 
-export const ASESOR_MOCK = {
-  nombre: "Carlos Reyes",
-  rol: "Asesor",
-  enLinea: true,
-  avatarIniciales: "CR",
-};
-
-export const MENSAJES_INICIALES: Mensaje[] = [
-  {
-    id: "m1",
-    de: "asesor",
-    texto: "¡Hola! ¿Cómo vas con las tareas asignadas?",
-    hora: "10:30 AM",
-  },
-  {
-    id: "m2",
-    de: "cliente",
-    texto: "Hola, muy bien. He estado practicando cada día.",
-    hora: "10:32 AM",
-  },
-  {
-    id: "m3",
-    de: "asesor",
-    texto: "Excelente, sigue así. Recuerda que la constancia es la clave.",
-    hora: "10:33 AM",
-  },
-  {
-    id: "m4",
-    de: "cliente",
-    texto: "¡Gracias!",
-    hora: "10:34 AM",
-  },
-];
-
-export type Tarea = {
-  id: string;
-  label: string;
-  completada: boolean;
-};
-
-export const TAREAS_INICIALES: Tarea[] = [
-  { id: "t1", label: "Ejercicio de autoconocimiento", completada: false },
-  { id: "t2", label: "Diario emocional", completada: true },
-  { id: "t3", label: "Técnicas de respiración", completada: false },
-];
-
-export const OBJETIVO_PRINCIPAL_MOCK = "Mejorar mi autoestima y manejo de estrés";
-export const PROGRESO_MOCK = 60;

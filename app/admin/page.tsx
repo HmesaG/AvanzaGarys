@@ -7,6 +7,7 @@ import { Users, Calendar, Clock, DollarSign, CalendarX } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
+import EvaluacionesPendientes from "./EvaluacionesPendientes";
 import { requireSesionPagina } from "@/lib/auth";
 import { listarCitas, statsDashboard } from "@/lib/admin-queries";
 import {
@@ -111,6 +112,8 @@ export default async function AdminDashboardPage() {
             </div>
           ))}
         </section>
+
+        <EvaluacionesPendientes />
 
         <section aria-label="Próximas citas">
           <h2 className="mb-3 text-sm font-semibold text-gray-900">

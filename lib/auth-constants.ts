@@ -23,6 +23,7 @@ export const RUTAS_PROTEGIDAS = [
   "/mensajes",
   "/perfil",
   "/home",
+  "/diagnostico",
 ] as const;
 
 /** Rutas públicas a las que se redirige o que nunca deben pedir sesión. */

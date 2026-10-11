@@ -48,6 +48,23 @@ export default function SelectField({
     }
   }, [value]);
 
+  // Si las opciones llegan después del montaje (ej. un selector que carga
+  // async vía fetch), Tom Select no se refresca solo — reconstruimos su
+  // lista interna cuando cambia el *contenido* del array (no la identidad,
+  // para no disparar esto en cada render).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const firmaOpciones = options.map((o) => `${o.value}:${o.label}`).join("|");
+  useEffect(() => {
+    const ts = tsRef.current;
+    if (!ts) return;
+    const actual = ts.getValue();
+    ts.clearOptions();
+    options.forEach((opt) => ts.addOption(opt));
+    ts.refreshOptions(false);
+    if (actual) ts.setValue(actual, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firmaOpciones]);
+
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-gray-700">

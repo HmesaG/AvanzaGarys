@@ -79,6 +79,18 @@ export function lineaValida(valor: unknown, campo = "linea"): LineaAsesoria {
   );
 }
 
+/** Monto en moneda local. Positivo, con hasta 2 decimales. */
+export function montoValido(valor: unknown, campo = "monto", { max = 1_000_000 } = {}): number {
+  const numero = typeof valor === "string" ? Number(valor) : valor;
+  if (typeof numero !== "number" || !Number.isFinite(numero) || numero <= 0) {
+    throw new ApiError(400, `El campo "${campo}" debe ser un número positivo`, "campo_invalido");
+  }
+  if (numero > max) {
+    throw new ApiError(400, `El campo "${campo}" no puede superar ${max}`, "campo_invalido");
+  }
+  return Math.round(numero * 100) / 100;
+}
+
 export function fechaValida(valor: unknown, campo: string): Date {
   const texto = textoRequerido(valor, campo, { max: 40 });
   const fecha = new Date(texto);

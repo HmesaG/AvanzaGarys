@@ -1,22 +1,23 @@
 "use client";
 
-import { useState, FormEvent, Suspense } from "react";
+import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { User, Phone, Mail, Cake } from "lucide-react";
+import { User, Phone, Mail, Lock, Building2 } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import PageTransition from "@/components/PageTransition";
 import TextField from "@/components/TextField";
 import SelectField from "@/components/SelectField";
-import { saveRegistro } from "@/lib/client-state";
+import { registrarCliente, obtenerEmpresas, ApiFetchError } from "@/lib/cliente-api";
 import { TIPOS_ASESORIA, type TipoAsesoria } from "@/lib/mock-data";
-import { successToast } from "@/lib/alerts";
+import { successToast, erpAlert } from "@/lib/alerts";
 
 type FormState = {
   nombreCompleto: string;
   telefono: string;
   correo: string;
-  edad: string;
+  password: string;
   tipoAsesoria: TipoAsesoria | "";
+  empresaId: string;
 };
 
 type Errors = Partial<Record<keyof FormState, string>>;
@@ -25,8 +26,9 @@ const initialForm: FormState = {
   nombreCompleto: "",
   telefono: "",
   correo: "",
-  edad: "",
+  password: "",
   tipoAsesoria: "",
+  empresaId: "",
 };
 
 const TIPOS_VALIDOS = new Set(TIPOS_ASESORIA.map((t) => t.id));
@@ -49,14 +51,14 @@ function validateField(name: keyof FormState, value: string): string | undefined
       if (!value.trim()) return "Ingresa tu correo electrónico";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Correo electrónico inválido";
       return undefined;
-    case "edad": {
-      if (!value.trim()) return "Ingresa tu edad";
-      const n = Number(value);
-      if (!Number.isInteger(n) || n < 12 || n > 100) return "Ingresa una edad válida";
+    case "password":
+      if (!value) return "Ingresa una contraseña";
+      if (value.length < 8) return "La contraseña debe tener al menos 8 caracteres";
       return undefined;
-    }
     case "tipoAsesoria":
       if (!value) return "Selecciona una línea de asesoría";
+      return undefined;
+    case "empresaId":
       return undefined;
     default:
       return undefined;
@@ -72,6 +74,14 @@ function RegistroForm() {
   }));
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [empresas, setEmpresas] = useState<{ id: string; nombre: string }[]>([]);
+
+  useEffect(() => {
+    if (form.tipoAsesoria !== "corporativo") return;
+    obtenerEmpresas()
+      .then(setEmpresas)
+      .catch(() => setEmpresas([]));
+  }, [form.tipoAsesoria]);
 
   function handleChange<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -82,7 +92,7 @@ function RegistroForm() {
     setErrors((prev) => ({ ...prev, [field]: error }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
     const nextErrors: Errors = {};
@@ -95,12 +105,23 @@ function RegistroForm() {
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
-    saveRegistro(form);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await registrarCliente({
+        nombreCompleto: form.nombreCompleto,
+        telefono: form.telefono,
+        correo: form.correo,
+        password: form.password,
+        tipoAsesoria: form.tipoAsesoria as "personal" | "corporativo" | "deportivo",
+        empresaId: form.tipoAsesoria === "corporativo" && form.empresaId ? form.empresaId : undefined,
+      });
       successToast("Registro guardado");
       router.push("/evaluacion");
-    }, 400);
+    } catch (error) {
+      const mensaje = error instanceof ApiFetchError ? error.message : "No se pudo completar el registro";
+      await erpAlert.fire({ icon: "error", title: "No se pudo registrar", text: mensaje });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -157,21 +178,18 @@ function RegistroForm() {
           />
 
           <TextField
-            id="edad"
-            label="Edad"
-            icon={Cake}
-            type="number"
-            inputMode="numeric"
-            placeholder="Ej. 28"
-            min={12}
-            max={100}
-            autoComplete="off"
+            id="password"
+            label="Contraseña"
+            icon={Lock}
+            type="password"
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
             required
             aria-required="true"
-            value={form.edad}
-            onChange={(e) => handleChange("edad", e.target.value)}
-            onBlur={() => handleBlur("edad")}
-            error={errors.edad}
+            value={form.password}
+            onChange={(e) => handleChange("password", e.target.value)}
+            onBlur={() => handleBlur("password")}
+            error={errors.password}
           />
 
           <div>
@@ -183,6 +201,7 @@ function RegistroForm() {
               value={form.tipoAsesoria}
               onChange={(value) => {
                 handleChange("tipoAsesoria", value as TipoAsesoria | "");
+                handleChange("empresaId", "");
                 setErrors((prev) => ({ ...prev, tipoAsesoria: undefined }));
               }}
               required
@@ -191,6 +210,23 @@ function RegistroForm() {
               <p className="mt-1.5 text-sm text-red-600">{errors.tipoAsesoria}</p>
             )}
           </div>
+
+          {form.tipoAsesoria === "corporativo" && (
+            <div>
+              <SelectField
+                id="empresaId"
+                label="Empresa"
+                placeholder={empresas.length ? "Selecciona tu empresa" : "Cargando empresas..."}
+                options={empresas.map((e) => ({ value: e.id, label: e.nombre }))}
+                value={form.empresaId}
+                onChange={(value) => handleChange("empresaId", value)}
+              />
+              <p className="mt-1.5 flex items-center gap-1 text-xs text-gray-500">
+                <Building2 className="h-3 w-3" aria-hidden="true" />
+                Si tu empresa no aparece, continuá sin seleccionarla.
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"

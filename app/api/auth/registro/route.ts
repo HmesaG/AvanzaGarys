@@ -12,7 +12,7 @@ import {
 import { limitarTasa } from "@/lib/rate-limit";
 import { db } from "@/lib/prisma";
 import { emailValido, lineaValida, passwordValida, textoOpcional, textoRequerido } from "@/lib/validacion";
-import { Rol } from "@/generated/prisma/client";
+import { LineaAsesoria, Rol } from "@/generated/prisma/client";
 
 const VENTANA_SEGUNDOS = 60 * 60;
 /** Altas por IP y por hora: frena el registro masivo automatizado. */
@@ -40,6 +40,11 @@ export async function POST(request: NextRequest) {
     const password = passwordValida(cuerpo.password);
     const telefono = textoOpcional(cuerpo.telefono, "telefono", { max: 40 });
     const linea = lineaValida(cuerpo.tipoAsesoria ?? cuerpo.linea);
+    // empresaId sólo tiene sentido en la línea Corporativo; en cualquier otra
+    // línea se ignora en silencio en vez de rechazar el registro por un campo
+    // de más (el frontend sólo lo manda cuando corresponde).
+    const empresaIdCrudo = textoOpcional(cuerpo.empresaId, "empresaId", { max: 64 });
+    const empresaId = linea === LineaAsesoria.CORPORATIVO ? empresaIdCrudo : null;
 
     // El rol NUNCA sale del payload: el registro público sólo crea CLIENTE.
     // Aceptar `cuerpo.rol` sería escalada de privilegios directa.
@@ -51,6 +56,13 @@ export async function POST(request: NextRequest) {
         throw new ApiError(409, "Ya existe una cuenta con ese correo", "email_en_uso");
       }
 
+      if (empresaId) {
+        const empresa = await tx.empresa.findUnique({ where: { id: empresaId }, select: { id: true } });
+        if (!empresa) {
+          throw new ApiError(400, "La empresa seleccionada no existe", "campo_invalido");
+        }
+      }
+
       const usuario = await tx.usuario.create({
         data: { email, passwordHash, nombre, rol: Rol.CLIENTE },
         select: { id: true, email: true, nombre: true, rol: true },
@@ -59,7 +71,7 @@ export async function POST(request: NextRequest) {
       // coachId queda null: el coach se asigna cuando alguien aprueba la
       // evaluación del cliente (ver ADR 007, deadlock de cartera del coach).
       const cliente = await tx.cliente.create({
-        data: { usuarioId: usuario.id, telefono, linea },
+        data: { usuarioId: usuario.id, telefono, linea, empresaId },
         select: { id: true },
       });
 

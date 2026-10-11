@@ -5,14 +5,14 @@
 // eventos: los toasts de las opciones futuras y el cierre de sesión real.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Bell, HelpCircle, LogOut, ChevronRight } from "lucide-react";
+import { Settings, Bell, HelpCircle, LogOut, ChevronRight, Building2 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import { erpAlert, erpToast, errorToast } from "@/lib/alerts";
 import { pedirJson } from "@/lib/api-navegador";
 import { ROL_LABEL, iniciales } from "@/lib/admin-formato";
-import type { Rol } from "@/generated/prisma/client";
+import { Rol } from "@/generated/prisma/client";
 
 const OPCIONES = [
   { icon: Settings, label: "Configuración" },
@@ -23,6 +23,10 @@ const OPCIONES = [
 export default function AjustesAdmin({ nombre, rol }: { nombre: string; rol: Rol }) {
   const router = useRouter();
   const [cerrando, setCerrando] = useState(false);
+  // Empresas es gestión de Fase 5 (coaching organizacional) — reservada a
+  // Administrador/Secretaria. NO a Coach (confirmado con el usuario en la
+  // Fase 5 Entrega 1 original): aunque llamara a la API, recibiría 403.
+  const puedeVerEmpresas = rol === Rol.ADMINISTRADOR || rol === Rol.SECRETARIA;
 
   async function handleCerrarSesion() {
     const result = await erpAlert.fire({
@@ -72,6 +76,19 @@ export default function AjustesAdmin({ nombre, rol }: { nombre: string; rol: Rol
         </section>
 
         <ul className="mb-6 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          {puedeVerEmpresas && (
+            <li>
+              <button
+                type="button"
+                onClick={() => router.push("/admin/empresas")}
+                className="flex min-h-[52px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
+              >
+                <Building2 className="h-4 w-4 text-gray-500" aria-hidden="true" />
+                <span className="flex-1 text-sm font-medium text-gray-900">Empresas</span>
+                <ChevronRight className="h-4 w-4 text-gray-300" aria-hidden="true" />
+              </button>
+            </li>
+          )}
           {OPCIONES.map(({ icon: Icon, label }) => (
             <li key={label}>
               <button

@@ -19,6 +19,9 @@ import {
   Wallet,
   Loader2,
   AlertCircle,
+  CheckSquare,
+  Square,
+  TrendingUp,
 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
@@ -68,6 +71,7 @@ type ClienteDetalle = {
   evaluaciones: {
     id: string;
     objetivoPrincipal: string;
+    principalDificultad: string | null;
     tiempoObjetivo: string | null;
     revisadaAt: string | null;
     createdAt: string;
@@ -79,6 +83,7 @@ type ClienteDetalle = {
     descripcion: string | null;
     progreso: number;
     activo: boolean;
+    consentimientoAceptado: boolean;
   }[];
   citas: {
     id: string;
@@ -91,9 +96,11 @@ type ClienteDetalle = {
     id: string;
     monto: number;
     estado: EstadoPago;
+    metodo: string | null;
     concepto: string | null;
     fechaPago: string | null;
   }[];
+  tareas: { id: string; label: string; completada: boolean }[];
 };
 
 function Cargando({ etiqueta }: { etiqueta: string }) {
@@ -338,6 +345,16 @@ function DetalleCliente({
                     {evaluacion.revisadaAt ? "Revisada" : "Pendiente"}
                   </span>
                 </div>
+                {evaluacion.principalDificultad && (
+                  <p className="mt-1.5 text-xs text-gray-600">
+                    Dificultad: {evaluacion.principalDificultad}
+                  </p>
+                )}
+                {evaluacion.tiempoObjetivo && (
+                  <p className="mt-1 text-xs text-gray-600">
+                    Tiempo deseado: {evaluacion.tiempoObjetivo}
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-gray-500">
                   Enviada el {formatFechaLarga(evaluacion.createdAt)}
                   {evaluacion.revisadaPor ? ` · Revisó ${evaluacion.revisadaPor.nombre}` : ""}
@@ -393,6 +410,7 @@ function DetalleCliente({
                   </p>
                   <p className="mt-0.5 text-xs text-gray-500">
                     {pago.concepto ?? "Sin concepto"}
+                    {pago.metodo ? ` · ${pago.metodo}` : ""}
                     {pago.fechaPago ? ` · ${formatFechaCorta(pago.fechaPago)}` : ""}
                   </p>
                 </div>
@@ -400,6 +418,34 @@ function DetalleCliente({
                   className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_PAGO_BADGE[pago.estado]}`}
                 >
                   {ESTADO_PAGO_LABEL[pago.estado]}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {cliente.tareas.length > 0 && (
+        <section aria-label="Progreso">
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+            <TrendingUp className="h-4 w-4 text-avanza-green" aria-hidden="true" />
+            Progreso ({cliente.tareas.filter((t) => t.completada).length}/{cliente.tareas.length})
+          </h2>
+          <ul className="space-y-2">
+            {cliente.tareas.map((tarea) => (
+              <li
+                key={tarea.id}
+                className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4"
+              >
+                {tarea.completada ? (
+                  <CheckSquare className="h-4 w-4 shrink-0 text-avanza-green" aria-hidden="true" />
+                ) : (
+                  <Square className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                )}
+                <span
+                  className={`text-sm ${tarea.completada ? "text-gray-500 line-through" : "text-gray-700"}`}
+                >
+                  {tarea.label}
                 </span>
               </li>
             ))}

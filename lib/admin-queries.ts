@@ -136,6 +136,7 @@ export async function clienteDetalle(clienteId: string) {
         select: {
           id: true,
           objetivoPrincipal: true,
+          principalDificultad: true,
           tiempoObjetivo: true,
           respuestas: true,
           revisadaAt: true,
@@ -145,7 +146,14 @@ export async function clienteDetalle(clienteId: string) {
       },
       programas: {
         orderBy: { createdAt: "desc" },
-        select: { id: true, nombre: true, descripcion: true, progreso: true, activo: true },
+        select: {
+          id: true,
+          nombre: true,
+          descripcion: true,
+          progreso: true,
+          activo: true,
+          consentimientoAceptado: true,
+        },
       },
       citas: {
         orderBy: { fecha: "desc" },
@@ -155,7 +163,11 @@ export async function clienteDetalle(clienteId: string) {
       pagos: {
         orderBy: { createdAt: "desc" },
         take: 20,
-        select: { id: true, monto: true, estado: true, concepto: true, fechaPago: true },
+        select: { id: true, monto: true, estado: true, metodo: true, concepto: true, fechaPago: true },
+      },
+      tareas: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, label: true, completada: true },
       },
     },
   });
@@ -174,6 +186,54 @@ export type FiltroCitas = {
   clienteId?: string;
   coachId?: string;
 };
+
+// --- Empresas (Fase 5 — coaching organizacional) ---------------------------
+
+export async function listarEmpresas() {
+  return db.empresa.findMany({
+    orderBy: { nombre: "asc" },
+    select: { id: true, nombre: true, _count: { select: { clientes: true } } },
+  });
+}
+
+export async function crearEmpresa(datos: { nombre: string; ruc?: string | null; telefono?: string | null }) {
+  return db.empresa.create({
+    data: { nombre: datos.nombre, ruc: datos.ruc ?? null, telefono: datos.telefono ?? null },
+    select: { id: true, nombre: true },
+  });
+}
+
+export async function obtenerEmpresaDetalle(empresaId: string) {
+  const empresa = await db.empresa.findUnique({
+    where: { id: empresaId },
+    select: {
+      id: true,
+      nombre: true,
+      ruc: true,
+      telefono: true,
+      clientes: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          usuario: { select: { nombre: true, email: true } },
+          diagnostico: { select: { id: true } },
+        },
+      },
+    },
+  });
+
+  if (!empresa) return null;
+
+  return {
+    ...empresa,
+    clientes: empresa.clientes.map((c) => ({
+      id: c.id,
+      nombre: c.usuario.nombre,
+      email: c.usuario.email,
+      diagnosticoCompletado: c.diagnostico !== null,
+    })),
+  };
+}
 
 export async function listarCitas(filtro: FiltroCitas) {
   return db.cita.findMany({

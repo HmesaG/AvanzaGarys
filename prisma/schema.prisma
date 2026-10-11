@@ -1,4 +1,4 @@
-// Schema Prisma 7 para Avanza. Ver ADR 007 (H:\GMV\ObsidianVault\01-Proyectos\Avanza\Decisiones\007-prisma7-redis-nextjs-middleware-cuid.md)
+// Schema Prisma 7 para Avanza. Ver ADR 007 (C:\GMV\ObsidianVault\01-Proyectos\Avanza\Decisiones\007-prisma7-redis-nextjs-middleware-cuid.md)
 // para el razonamiento detrás de Prisma 7 (driver adapter) y CUID como PK.
 
 generator client {
@@ -40,6 +40,12 @@ enum EstadoPago {
 enum RemitentePago {
   CLIENTE
   ASESOR
+}
+
+enum NivelComunicacion {
+  BUENA
+  REGULAR
+  DEFICIENTE
 }
 
 model Usuario {
@@ -101,6 +107,8 @@ model Cliente {
   citas        Cita[]
   pagos        Pago[]
   mensajes     Mensaje[]
+  tareas       Tarea[]
+  diagnostico  Diagnostico?
 
   @@index([coachId])
   @@index([empresaId])
@@ -113,6 +121,7 @@ model Evaluacion {
   cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
 
   objetivoPrincipal String  @db.Text
+  principalDificultad String? @db.Text
   tiempoObjetivo    String?
   respuestas        Json
 
@@ -140,6 +149,11 @@ model Programa {
   descripcion String? @db.Text
   progreso  Int      @default(0)
   activo    Boolean  @default(true)
+
+  // Consentimiento del cliente para arrancar el programa (paso 7 del flujo
+  // real). 1:1 con el programa — no amerita un modelo aparte.
+  consentimientoAceptado Boolean   @default(false)
+  consentimientoAt       DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -178,6 +192,10 @@ model Pago {
   monto     Decimal    @db.Decimal(10, 2)
   estado    EstadoPago @default(PENDIENTE)
   concepto  String?
+  // Método elegido por el cliente al pagar (ej. "Tarjeta", "Transferencia").
+  // Texto libre corto, no enum: el catálogo de métodos no es responsabilidad
+  // de este modelo y puede crecer sin migración.
+  metodo    String?
   fechaPago DateTime?
 
   createdAt DateTime @default(now())
@@ -185,6 +203,36 @@ model Pago {
 
   @@index([clienteId])
   @@map("pagos")
+}
+
+model Tarea {
+  id        String   @id @default(cuid())
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  label      String
+  completada Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([clienteId])
+  @@map("tareas")
+}
+
+model Diagnostico {
+  id        String  @id @default(cuid())
+  clienteId String  @unique
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  climaLaboral      String            @db.VarChar(255)
+  principalDesafio  String            @db.VarChar(255)
+  nivelComunicacion NivelComunicacion
+  objetivoEmpresa   String            @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("diagnosticos")
 }
 
 model Mensaje {
