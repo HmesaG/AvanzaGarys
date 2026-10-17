@@ -218,7 +218,14 @@ export async function obtenerEmpresaDetalle(empresaId: string) {
         select: {
           id: true,
           usuario: { select: { nombre: true, email: true } },
-          diagnostico: { select: { id: true } },
+          diagnostico: {
+            select: {
+              climaLaboral: true,
+              principalDesafio: true,
+              nivelComunicacion: true,
+              objetivoEmpresa: true,
+            },
+          },
         },
       },
     },
@@ -226,13 +233,37 @@ export async function obtenerEmpresaDetalle(empresaId: string) {
 
   if (!empresa) return null;
 
+  const totalClientes = empresa.clientes.length;
+  const conDiagnostico = empresa.clientes.filter((c) => c.diagnostico !== null);
+  const tasaCompletado = totalClientes > 0 ? Math.round((conDiagnostico.length / totalClientes) * 100) : 0;
+
+  const nivelesComunicacion: Record<string, number> = { BUENA: 0, REGULAR: 0, DEFICIENTE: 0 };
+  for (const c of conDiagnostico) {
+    if (c.diagnostico?.nivelComunicacion) {
+      nivelesComunicacion[c.diagnostico.nivelComunicacion] =
+        (nivelesComunicacion[c.diagnostico.nivelComunicacion] ?? 0) + 1;
+    }
+  }
+
   return {
     ...empresa,
+    metricas: {
+      totalColaboradores: totalClientes,
+      diagnosticosCompletados: conDiagnostico.length,
+      tasaCompletado,
+      nivelesComunicacion,
+      desafios: conDiagnostico.map((c) => ({
+        colaborador: c.usuario.nombre,
+        desafio: c.diagnostico!.principalDesafio,
+        clima: c.diagnostico!.climaLaboral,
+      })),
+    },
     clientes: empresa.clientes.map((c) => ({
       id: c.id,
       nombre: c.usuario.nombre,
       email: c.usuario.email,
       diagnosticoCompletado: c.diagnostico !== null,
+      diagnostico: c.diagnostico,
     })),
   };
 }

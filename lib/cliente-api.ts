@@ -166,8 +166,9 @@ export type MensajeCliente = {
   de: { id: string; rol: string };
 };
 
-export function listarMensajes() {
-  return pedir<{ mensajes: MensajeCliente[] }>("/api/cliente/mensajes").then((r) => r.mensajes);
+export function listarMensajes(desde?: string) {
+  const url = desde ? `/api/cliente/mensajes?desde=${encodeURIComponent(desde)}` : "/api/cliente/mensajes";
+  return pedir<{ mensajes: MensajeCliente[] }>(url).then((r) => r.mensajes);
 }
 
 export function enviarMensaje(texto: string) {

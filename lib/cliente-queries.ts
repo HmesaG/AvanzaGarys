@@ -254,15 +254,18 @@ export async function cancelarCitaCliente(clienteId: string, citaId: string) {
 
 // --- Mensajes ----------------------------------------------------------------
 
-export async function listarMensajesCliente(clienteId: string) {
+export async function listarMensajesCliente(clienteId: string, desde?: Date) {
   return db.mensaje.findMany({
-    where: { clienteId },
+    where: {
+      clienteId,
+      ...(desde ? { createdAt: { gt: desde } } : {}),
+    },
     orderBy: { createdAt: "asc" },
     select: {
       id: true,
       texto: true,
       createdAt: true,
-      de: { select: { id: true, rol: true } },
+      de: { select: { id: true, rol: true, nombre: true } },
     },
   });
 }

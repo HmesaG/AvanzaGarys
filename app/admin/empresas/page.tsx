@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, ChevronLeft, ChevronRight, Plus, Users, Loader2, AlertCircle } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Plus, Users, Loader2, AlertCircle, Printer, FileBarChart2, TrendingUp } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -15,7 +15,25 @@ type EmpresaDetalle = {
   nombre: string;
   ruc: string | null;
   telefono: string | null;
-  clientes: { id: string; nombre: string; email: string; diagnosticoCompletado: boolean }[];
+  metricas?: {
+    totalColaboradores: number;
+    diagnosticosCompletados: number;
+    tasaCompletado: number;
+    nivelesComunicacion: Record<string, number>;
+    desafios: { colaborador: string; desafio: string; clima: string }[];
+  };
+  clientes: {
+    id: string;
+    nombre: string;
+    email: string;
+    diagnosticoCompletado: boolean;
+    diagnostico?: {
+      climaLaboral: string;
+      principalDesafio: string;
+      nivelComunicacion: string;
+      objetivoEmpresa: string;
+    } | null;
+  }[];
 };
 
 function Cargando({ etiqueta }: { etiqueta: string }) {
@@ -136,6 +154,59 @@ export default function AdminEmpresasPage() {
                     </div>
                   </div>
                 </section>
+
+                {detalle.metricas && (
+                  <section aria-label="Informe Organizacional" className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <FileBarChart2 className="h-5 w-5 text-blue-700" />
+                        <h2 className="text-sm font-bold text-gray-900">Informe Organizacional Consolidado</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="flex items-center gap-1.5 rounded-xl bg-white border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm"
+                      >
+                        <Printer className="h-3.5 w-3.5 text-gray-500" />
+                        Imprimir / PDF
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="rounded-xl bg-white p-3 border border-blue-100">
+                        <p className="text-[11px] text-gray-500 uppercase tracking-wide">Completitud Diagnóstico</p>
+                        <p className="mt-1 text-xl font-bold text-blue-700">{detalle.metricas.tasaCompletado}%</p>
+                        <p className="text-[10px] text-gray-400">
+                          {detalle.metricas.diagnosticosCompletados} de {detalle.metricas.totalColaboradores} participantes
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-white p-3 border border-blue-100">
+                        <p className="text-[11px] text-gray-500 uppercase tracking-wide">Comunicación Interna</p>
+                        <p className="mt-1 text-xs font-semibold text-gray-800">
+                          {detalle.metricas.nivelesComunicacion.BUENA ?? 0} Buena · {detalle.metricas.nivelesComunicacion.REGULAR ?? 0} Reg.
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          {detalle.metricas.nivelesComunicacion.DEFICIENTE ?? 0} Deficiente
+                        </p>
+                      </div>
+                    </div>
+
+                    {detalle.metricas.desafios.length > 0 && (
+                      <div className="rounded-xl bg-white p-3 border border-blue-100">
+                        <p className="text-xs font-semibold text-gray-900 mb-2">Desafíos Detectados por Colaboradores</p>
+                        <ul className="space-y-1.5 text-xs text-gray-600 max-h-40 overflow-y-auto">
+                          {detalle.metricas.desafios.map((d, i) => (
+                            <li key={i} className="border-b border-gray-100 pb-1 last:border-none">
+                              <span className="font-medium text-gray-800">{d.colaborador}: </span>
+                              <span>"{d.desafio}"</span>
+                              <span className="text-[10px] text-gray-400 block">Clima: {d.clima}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </section>
+                )}
 
                 <section aria-label="Participantes">
                   <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">

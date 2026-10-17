@@ -5,10 +5,13 @@ import { crearMensajeCliente, listarMensajesCliente } from "@/lib/cliente-querie
 import { textoRequerido } from "@/lib/validacion";
 import { Rol } from "@/generated/prisma/client";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const usuario = await requireRole(Rol.CLIENTE);
-    const mensajes = await listarMensajesCliente(usuario.clienteId!);
+    const url = new URL(request.url);
+    const desdeParam = url.searchParams.get("desde");
+    const desde = desdeParam ? new Date(desdeParam) : undefined;
+    const mensajes = await listarMensajesCliente(usuario.clienteId!, desde);
     return jsonOk({ mensajes });
   } catch (error) {
     return manejarError(error);

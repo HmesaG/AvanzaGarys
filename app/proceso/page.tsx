@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckSquare, Square, Target, TrendingUp, Rocket, ChevronRight } from "lucide-react";
+import { CheckSquare, Square, Target, TrendingUp, Rocket, ChevronRight, Printer, FileText } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -97,6 +97,15 @@ export default function ProcesoPage() {
               style={{ width: `${progresoTareas}%` }}
             />
           </div>
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 active:scale-[0.99] transition-all"
+          >
+            <Printer className="h-4 w-4 text-gray-500" />
+            Imprimir / Guardar Informe de Avance (PDF)
+          </button>
         </section>
 
         <section aria-label="Tareas asignadas">
