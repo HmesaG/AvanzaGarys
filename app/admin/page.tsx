@@ -89,17 +89,17 @@ export default async function AdminDashboardPage() {
     <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Panel administrativo" />
 
-      <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
+      <main className="mx-auto min-h-dvh max-w-md lg:max-w-6xl px-5 pb-28 pt-6">
         <section className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             Hola, {primerNombre(usuario.nombre)}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {ROL_LABEL[usuario.rol]} · Aquí tienes un resumen general
           </p>
         </section>
 
-        <section aria-label="Resumen general" className="mb-6 grid grid-cols-2 gap-3">
+        <section aria-label="Resumen general" className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
           {tarjetas.map(({ label, value, icon: Icon, color, bg }) => (
             <div
               key={label}

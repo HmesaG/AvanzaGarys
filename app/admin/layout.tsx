@@ -1,13 +1,28 @@
-// Capa 2 de la protección de rutas (ADR 007, decisión 3).
-//
-// El middleware Edge ya descartó a quien no trae cookie, pero desde Edge no se
-// puede hablar con Redis: una cookie vencida, invalidada en el logout o
-// manipulada a mano pasa ese filtro. Acá se valida la sesión de verdad y el rol.
 import type { ReactNode } from "react";
 import { requireSesionPagina } from "@/lib/auth";
 import { Rol } from "@/generated/prisma/client";
+import AdminSidebar from "@/components/AdminSidebar";
+import AdminDesktopTopbar from "@/components/AdminDesktopTopbar";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  await requireSesionPagina(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
-  return <>{children}</>;
+  const usuario = await requireSesionPagina(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
+
+  const sesionUsuario = {
+    id: usuario.id,
+    nombre: usuario.nombre,
+    email: usuario.email,
+    rol: usuario.rol,
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <AdminSidebar usuario={sesionUsuario} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <AdminDesktopTopbar usuario={sesionUsuario} />
+        <div className="flex-1">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }

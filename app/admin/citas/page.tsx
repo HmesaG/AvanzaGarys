@@ -280,7 +280,7 @@ export default function AdminCitasPage() {
     <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Citas" />
 
-      <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
+      <main className="mx-auto min-h-dvh max-w-md lg:max-w-6xl px-5 pb-28 pt-6">
         <div className="mb-4 flex items-center justify-between gap-2">
           <div
             role="tablist"

@@ -20,7 +20,7 @@ export default function AdminBottomNav() {
   return (
     <nav
       aria-label="Navegación del panel administrativo"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur safe-bottom dark:border-gray-800 dark:bg-gray-900/95"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur safe-bottom dark:border-gray-800 dark:bg-gray-900/95 lg:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-between">
         {ITEMS.map(({ href, label, icon: Icon, exact }) => {

@@ -650,7 +650,7 @@ export default function AdminClientesPage() {
     <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Clientes" />
 
-      <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
+      <main className="mx-auto min-h-dvh max-w-md lg:max-w-6xl px-5 pb-28 pt-6">
         {enVistaDetalle ? (
           detalle ? (
             <DetalleCliente
