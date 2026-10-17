@@ -13,6 +13,7 @@ import {
   Sparkles,
   Building2,
   Rocket,
+  Trophy,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -194,6 +195,18 @@ export default function HomePage() {
                       icon: Building2,
                       color: "text-avanza-blue",
                       bg: "bg-avanza-blue-light",
+                    },
+                  ]
+                : []),
+              ...(estado?.requiereDiagnosticoDeportivo && !estado.diagnosticoDeportivoCompletado
+                ? [
+                    {
+                      href: "/deportivo/diagnostico",
+                      label: "Diagnóstico",
+                      desc: "Perfil atlético y mental",
+                      icon: Trophy,
+                      color: "text-blue-700",
+                      bg: "bg-blue-50",
                     },
                   ]
                 : []),

@@ -67,6 +67,9 @@ export async function obtenerEstado(clienteId: string) {
       diagnostico: {
         select: { id: true },
       },
+      diagnosticoDeportivo: {
+        select: { id: true },
+      },
     },
   });
 
@@ -84,6 +87,8 @@ export async function obtenerEstado(clienteId: string) {
     linea: cliente.linea,
     requiereDiagnostico: cliente.linea === "CORPORATIVO" && Boolean(cliente.empresaId),
     diagnosticoCompletado: cliente.diagnostico !== null,
+    requiereDiagnosticoDeportivo: cliente.linea === "DEPORTIVO",
+    diagnosticoDeportivoCompletado: cliente.diagnosticoDeportivo !== null,
     evaluacion: evaluacion
       ? {
           ...evaluacion,
@@ -309,3 +314,33 @@ export async function crearDiagnostico(clienteId: string, datos: DatosDiagnostic
     select: { id: true, createdAt: true },
   });
 }
+
+// --- Diagnóstico deportivo (Fase 5 Entrega 2) --------------------------------
+
+export type DatosDiagnosticoDeportivo = {
+  disciplina: string;
+  categoria: string;
+  metaCompetitiva: string;
+  bloqueoMental: string;
+  nivelDescansoNutricion: string;
+  horasEntrenamientoSemana: number;
+};
+
+export async function crearDiagnosticoDeportivo(clienteId: string, datos: DatosDiagnosticoDeportivo) {
+  const existente = await db.diagnosticoDeportivo.findUnique({ where: { clienteId } });
+  if (existente) {
+    throw new ApiError(409, "Ya completaste tu diagnóstico deportivo", "ya_completado");
+  }
+
+  return db.diagnosticoDeportivo.create({
+    data: { clienteId, ...datos },
+    select: { id: true, createdAt: true },
+  });
+}
+
+export async function obtenerDiagnosticoDeportivo(clienteId: string) {
+  return db.diagnosticoDeportivo.findUnique({
+    where: { clienteId },
+  });
+}
+

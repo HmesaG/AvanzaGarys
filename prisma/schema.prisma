@@ -129,6 +129,7 @@ model Cliente {
   mensajes     Mensaje[]
   tareas       Tarea[]
   diagnostico  Diagnostico?
+  diagnosticoDeportivo DiagnosticoDeportivo?
   planesGrow   PlanGrow[]
 
   @@index([coachId])
@@ -314,6 +315,24 @@ model Diagnostico {
   updatedAt DateTime @updatedAt
 
   @@map("diagnosticos")
+}
+
+model DiagnosticoDeportivo {
+  id                     String   @id @default(cuid())
+  clienteId              String   @unique
+  cliente                Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  disciplina             String   @db.VarChar(255)
+  categoria              String   @db.VarChar(255)
+  metaCompetitiva        String   @db.Text
+  bloqueoMental          String   @db.Text
+  nivelDescansoNutricion String   @db.VarChar(100)
+  horasEntrenamientoSemana Int    @default(10)
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@map("diagnosticos_deportivos")
 }
 
 model Mensaje {

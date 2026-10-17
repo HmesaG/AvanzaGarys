@@ -22,6 +22,7 @@ import {
   CheckSquare,
   Square,
   TrendingUp,
+  Trophy,
 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
@@ -101,6 +102,20 @@ type ClienteDetalle = {
     fechaPago: string | null;
   }[];
   tareas: { id: string; label: string; completada: boolean }[];
+  diagnostico?: {
+    climaLaboral: string;
+    principalDesafio: string;
+    nivelComunicacion: string;
+    objetivoEmpresa: string;
+  } | null;
+  diagnosticoDeportivo?: {
+    disciplina: string;
+    categoria: string;
+    metaCompetitiva: string;
+    bloqueoMental: string;
+    nivelDescansoNutricion: string;
+    horasEntrenamientoSemana: number;
+  } | null;
 };
 
 function Cargando({ etiqueta }: { etiqueta: string }) {
@@ -362,6 +377,60 @@ function DetalleCliente({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {cliente.diagnosticoDeportivo && (
+        <section aria-label="Diagnóstico Deportivo" className="mb-6">
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+            <Trophy className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            Diagnóstico Deportivo (Alto Rendimiento)
+          </h2>
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-2 text-xs text-gray-700">
+            <div>
+              <span className="font-semibold text-gray-900">Disciplina: </span>
+              {cliente.diagnosticoDeportivo.disciplina} ({cliente.diagnosticoDeportivo.categoria})
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Horas semanales: </span>
+              {cliente.diagnosticoDeportivo.horasEntrenamientoSemana} hrs · Recuperación: {cliente.diagnosticoDeportivo.nivelDescansoNutricion}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Meta competitiva: </span>
+              {cliente.diagnosticoDeportivo.metaCompetitiva}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Desafío / Presión mental: </span>
+              {cliente.diagnosticoDeportivo.bloqueoMental}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {cliente.diagnostico && (
+        <section aria-label="Diagnóstico Organizacional" className="mb-6">
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+            <Building2 className="h-4 w-4 text-avanza-blue" aria-hidden="true" />
+            Diagnóstico Organizacional
+          </h2>
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-2 text-xs text-gray-700">
+            <div>
+              <span className="font-semibold text-gray-900">Clima laboral: </span>
+              {cliente.diagnostico.climaLaboral}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Comunicación: </span>
+              {cliente.diagnostico.nivelComunicacion}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Desafío principal: </span>
+              {cliente.diagnostico.principalDesafio}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Objetivo empresa: </span>
+              {cliente.diagnostico.objetivoEmpresa}
+            </div>
+          </div>
         </section>
       )}
 

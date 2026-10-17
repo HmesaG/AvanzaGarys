@@ -131,6 +131,8 @@ export async function clienteDetalle(clienteId: string) {
       usuario: { select: { id: true, nombre: true, email: true, activo: true } },
       coach: { select: { id: true, nombre: true } },
       empresa: { select: { id: true, nombre: true } },
+      diagnostico: true,
+      diagnosticoDeportivo: true,
       evaluaciones: {
         orderBy: { createdAt: "desc" },
         select: {

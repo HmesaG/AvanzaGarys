@@ -79,6 +79,8 @@ export type EstadoCliente = {
   linea: "PERSONAL" | "CORPORATIVO" | "DEPORTIVO";
   requiereDiagnostico: boolean;
   diagnosticoCompletado: boolean;
+  requiereDiagnosticoDeportivo?: boolean;
+  diagnosticoDeportivoCompletado?: boolean;
   evaluacion: EstadoEvaluacion | null;
   programa: EstadoPrograma | null;
   pago: EstadoPago | null;
@@ -192,3 +194,25 @@ export function enviarDiagnostico(datos: {
 }) {
   return post("/api/cliente/diagnostico", datos);
 }
+
+// --- Diagnóstico deportivo (Fase 5 Entrega 2) --------------------------------
+
+export type DiagnosticoDeportivoDatos = {
+  disciplina: string;
+  categoria: string;
+  metaCompetitiva: string;
+  bloqueoMental: string;
+  nivelDescansoNutricion: string;
+  horasEntrenamientoSemana: number;
+};
+
+export function enviarDiagnosticoDeportivo(datos: DiagnosticoDeportivoDatos) {
+  return post("/api/cliente/diagnostico-deportivo", datos);
+}
+
+export function obtenerDiagnosticoDeportivo() {
+  return pedir<{ diagnostico: DiagnosticoDeportivoDatos | null }>("/api/cliente/diagnostico-deportivo").then(
+    (r) => r.diagnostico,
+  );
+}
+

@@ -274,6 +274,16 @@ export default function PerfilPage() {
                       Diagnóstico: {estado.diagnosticoCompletado ? "Completado" : "Pendiente"}
                     </Link>
                   )}
+                  {estado.requiereDiagnosticoDeportivo && (
+                    <Link
+                      href="/deportivo/diagnostico"
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium ${chipClase(
+                        estado.diagnosticoDeportivoCompletado ? "verde" : "ambar",
+                      )}`}
+                    >
+                      Diagnóstico Deportivo: {estado.diagnosticoDeportivoCompletado ? "Completado" : "Pendiente"}
+                    </Link>
+                  )}
                 </div>
               </section>
             )}
