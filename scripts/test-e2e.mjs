@@ -79,6 +79,7 @@ async function main() {
 
   // 5. Login Cliente
   let clienteCookie = "";
+  let clienteIdGlobal = "";
   await test("5. Autenticación Cliente (/api/auth/login)", async () => {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
       method: "POST",
@@ -90,6 +91,7 @@ async function main() {
     clienteCookie = setCookie.split(";")[0];
     const data = await res.json();
     if (data.usuario?.rol !== "CLIENTE") throw new Error(`Rol inesperado: ${data.usuario?.rol}`);
+    clienteIdGlobal = data.usuario?.clienteId || "";
   });
 
   // 6. Estado del Cliente
@@ -202,6 +204,47 @@ async function main() {
         throw new Error("La nota guardada no coincide con la nota enviada");
       }
     }
+  });
+
+  // 11. Chat Bidireccional Coachee <-> Coach/Admin
+  await test("11. Chat en Vivo Bidireccional (/api/admin/clientes/[id]/mensajes)", async () => {
+    // 1. Cliente envía mensaje
+    const textoCliente = `Mensaje de prueba coachee: ${Date.now()}`;
+    const resMsgCli = await fetch(`${BASE_URL}/api/cliente/mensajes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: clienteCookie, origin: BASE_URL },
+      body: JSON.stringify({ texto: textoCliente }),
+    });
+    if (!resMsgCli.ok) throw new Error(`Status envío mensaje cliente ${resMsgCli.status}`);
+
+    const clienteIdChat = clienteIdGlobal || clienteIdTest;
+    if (!clienteIdChat) throw new Error("No se pudo obtener el ID del cliente para el chat");
+
+    // 3. Coach lee la conversación del cliente
+    const resGetCoach = await fetch(`${BASE_URL}/api/admin/clientes/${clienteIdChat}/mensajes`, {
+      headers: { Cookie: adminCookie },
+    });
+    if (!resGetCoach.ok) throw new Error(`Status lectura chat por coach ${resGetCoach.status}`);
+    const dataChat = await resGetCoach.json();
+    const mensajeEncontrado = dataChat.mensajes?.find((m) => m.texto === textoCliente);
+    if (!mensajeEncontrado) throw new Error("El mensaje del cliente no apareció en el panel del coach");
+
+    // 4. Coach responde al cliente
+    const textoCoach = `Respuesta del Coach: Excelente progreso, nos vemos en sesión. ${Date.now()}`;
+    const resMsgCoach = await fetch(`${BASE_URL}/api/admin/clientes/${clienteIdChat}/mensajes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie, origin: BASE_URL },
+      body: JSON.stringify({ texto: textoCoach }),
+    });
+    if (!resMsgCoach.ok) throw new Error(`Status respuesta coach ${resMsgCoach.status}`);
+
+    // 5. Cliente verifica que recibió la respuesta del coach
+    const resCliVerif = await fetch(`${BASE_URL}/api/cliente/mensajes`, {
+      headers: { Cookie: clienteCookie },
+    });
+    const dataCliVerif = await resCliVerif.json();
+    const respuestaEncontrada = dataCliVerif.mensajes?.find((m) => m.texto === textoCoach);
+    if (!respuestaEncontrada) throw new Error("La respuesta del coach no llegó a la bandeja del cliente");
   });
 
   console.log(`\n======================================================`);

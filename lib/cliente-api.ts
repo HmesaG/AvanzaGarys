@@ -163,7 +163,7 @@ export type MensajeCliente = {
   id: string;
   texto: string;
   createdAt: string;
-  de: { id: string; rol: string };
+  de: { id: string; rol: string; nombre?: string };
 };
 
 export function listarMensajes(desde?: string) {

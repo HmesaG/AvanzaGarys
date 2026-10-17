@@ -273,7 +273,12 @@ export async function listarMensajesCliente(clienteId: string, desde?: Date) {
 export async function crearMensajeCliente(clienteId: string, usuarioId: string, texto: string) {
   return db.mensaje.create({
     data: { clienteId, deId: usuarioId, texto },
-    select: { id: true, texto: true, createdAt: true },
+    select: {
+      id: true,
+      texto: true,
+      createdAt: true,
+      de: { select: { id: true, rol: true, nombre: true } },
+    },
   });
 }
 
