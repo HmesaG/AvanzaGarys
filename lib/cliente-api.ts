@@ -71,6 +71,7 @@ export type EstadoPago = {
   metodo: string | null;
   concepto: string | null;
   fechaPago: string | null;
+  comprobanteUrl?: string | null;
 };
 
 export type EstadoTarea = { id: string; label: string; completada: boolean };
@@ -84,7 +85,7 @@ export type EstadoCliente = {
   evaluacion: EstadoEvaluacion | null;
   programa: EstadoPrograma | null;
   pago: EstadoPago | null;
-  proximaCita: { id: string; fecha: string; modalidad: string; estado: string } | null;
+  proximaCita: { id: string; fecha: string; modalidad: string; estado: string; enlaceReunion?: string | null } | null;
   tareas: EstadoTarea[];
   progreso: { completadas: number; total: number; porcentaje: number };
   puedeAgendar: boolean;
@@ -137,13 +138,23 @@ export function aceptarConsentimiento() {
   return post("/api/cliente/consentimiento");
 }
 
-export function registrarPago(metodo: "Tarjeta" | "Transferencia" | "Efectivo") {
-  return post("/api/cliente/pago", { metodo });
+export function registrarPago(
+  metodo: "Tarjeta" | "Transferencia" | "Efectivo",
+  comprobanteUrl?: string,
+) {
+  return post("/api/cliente/pago", { metodo, comprobanteUrl });
 }
 
 // --- Citas -------------------------------------------------------------------
 
-export type CitaCliente = { id: string; fecha: string; modalidad: string; estado: string; notas: string | null };
+export type CitaCliente = {
+  id: string;
+  fecha: string;
+  modalidad: string;
+  estado: string;
+  notas: string | null;
+  enlaceReunion?: string | null;
+};
 
 export function listarCitas() {
   return pedir<{ citas: CitaCliente[] }>("/api/cliente/citas").then((r) => r.citas);

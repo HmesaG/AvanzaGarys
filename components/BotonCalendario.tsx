@@ -14,6 +14,7 @@ interface BotonCalendarioProps {
     modalidad: string;
     clienteNombre?: string;
     coachNombre?: string;
+    enlaceReunion?: string | null;
   };
   className?: string;
 }
@@ -35,7 +36,7 @@ export default function BotonCalendario({ cita, className = "" }: BotonCalendari
   const fechaInicio = new Date(cita.fecha);
   const enlaceVirtual =
     cita.modalidad === "Virtual"
-      ? `https://meet.jit.si/Avanza-Coaching-${cita.id}`
+      ? cita.enlaceReunion || `https://meet.jit.si/Avanza-Coaching-${cita.id}`
       : "Oficinas AvanzA Coaching";
 
   const evento = {

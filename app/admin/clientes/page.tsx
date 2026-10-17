@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Trophy,
   MessageCircle,
+  Receipt,
 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
@@ -102,6 +103,7 @@ type ClienteDetalle = {
     metodo: string | null;
     concepto: string | null;
     fechaPago: string | null;
+    comprobanteUrl: string | null;
   }[];
   tareas: { id: string; label: string; completada: boolean }[];
   diagnostico?: {
@@ -502,6 +504,19 @@ function DetalleCliente({
                     {pago.metodo ? ` · ${pago.metodo}` : ""}
                     {pago.fechaPago ? ` · ${formatFechaCorta(pago.fechaPago)}` : ""}
                   </p>
+                  {pago.comprobanteUrl && (
+                    <div className="mt-1.5">
+                      <a
+                        href={pago.comprobanteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors dark:bg-emerald-950/40 dark:text-emerald-300 dark:border dark:border-emerald-800/40"
+                      >
+                        <Receipt className="h-3 w-3" />
+                        <span>Ver Comprobante / Voucher</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_PAGO_BADGE[pago.estado]}`}

@@ -41,7 +41,7 @@ export async function GET(
 
     const modalidadVirtual = cita.modalidad === "Virtual";
     const enlaceVirtual = modalidadVirtual
-      ? `https://meet.jit.si/Avanza-Coaching-${cita.id}`
+      ? cita.enlaceReunion || `https://meet.jit.si/Avanza-Coaching-${cita.id}`
       : "Oficinas AvanzA Coaching";
 
     const descripcion = [

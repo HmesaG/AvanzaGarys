@@ -3,7 +3,7 @@
 // (`lib/admin-queries.ts` se escribió para esto) en vez de pegarle a
 // `/api/admin/*` — un fetch a la propia API desde el servidor exigiría URL
 // absoluta y reenviar la cookie a mano para llegar a los mismos datos.
-import { Users, Calendar, Clock, DollarSign, CalendarX, AlertTriangle, ChevronRight } from "lucide-react";
+import { Users, Calendar, Clock, DollarSign, CalendarX, AlertTriangle, ChevronRight, Download } from "lucide-react";
 import Link from "next/link";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
@@ -159,6 +159,26 @@ export default async function AdminDashboardPage() {
             </div>
           </section>
         )}
+
+        {/* Acciones Rápidas de Reportes */}
+        <div className="mb-6 flex gap-2.5">
+          <a
+            href="/api/admin/citas/exportar"
+            download
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white py-2.5 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-750"
+          >
+            <Download className="h-3.5 w-3.5 text-avanza-green dark:text-emerald-400" />
+            <span>Coaching Log ICF</span>
+          </a>
+          <a
+            href="/api/admin/pagos/exportar"
+            download
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white py-2.5 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-750"
+          >
+            <Download className="h-3.5 w-3.5 text-avanza-orange" />
+            <span>Reporte Pagos (CSV)</span>
+          </a>
+        </div>
 
         <EvaluacionesPendientes />
 

@@ -194,7 +194,7 @@ export default function AgendaPage() {
             {sesionActual.modalidad === "Virtual" && (
               <div className="mt-3 pt-3 border-t border-white/20">
                 <a
-                  href={`https://meet.jit.si/Avanza-Coaching-${sesionActual.id}`}
+                  href={sesionActual.enlaceReunion || `https://meet.jit.si/Avanza-Coaching-${sesionActual.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-white text-avanza-green font-semibold text-sm shadow hover:bg-emerald-50 active:scale-[0.98] transition-all"

@@ -160,12 +160,12 @@ export async function clienteDetalle(clienteId: string) {
       citas: {
         orderBy: { fecha: "desc" },
         take: 20,
-        select: { id: true, fecha: true, modalidad: true, estado: true, notas: true },
+        select: { id: true, fecha: true, modalidad: true, estado: true, notas: true, enlaceReunion: true },
       },
       pagos: {
         orderBy: { createdAt: "desc" },
         take: 20,
-        select: { id: true, monto: true, estado: true, metodo: true, concepto: true, fechaPago: true },
+        select: { id: true, monto: true, estado: true, metodo: true, concepto: true, fechaPago: true, comprobanteUrl: true },
       },
       tareas: {
         orderBy: { createdAt: "asc" },
@@ -347,6 +347,7 @@ export async function listarCitas(filtro: FiltroCitas) {
       modalidad: true,
       estado: true,
       notas: true,
+      enlaceReunion: true,
       cliente: {
         select: { id: true, linea: true, usuario: { select: { nombre: true, email: true } } },
       },

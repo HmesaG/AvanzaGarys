@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { ApiError, jsonOk, leerJson, manejarError, verificarOrigen } from "@/lib/http";
 import { registrarPago } from "@/lib/cliente-queries";
-import { textoRequerido } from "@/lib/validacion";
+import { textoRequerido, textoOpcional } from "@/lib/validacion";
 import { Rol } from "@/generated/prisma/client";
 
 const METODOS = ["Tarjeta", "Transferencia", "Efectivo"] as const;
@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
       throw new ApiError(400, "Método de pago inválido (Tarjeta, Transferencia o Efectivo)", "campo_invalido");
     }
 
-    const pago = await registrarPago(usuario.clienteId!, metodo);
+    const comprobanteUrl = textoOpcional(cuerpo.comprobanteUrl, "comprobanteUrl", { max: 1000 });
+    const pago = await registrarPago(usuario.clienteId!, metodo, comprobanteUrl);
     return jsonOk({ pago });
   } catch (error) {
     return manejarError(error);

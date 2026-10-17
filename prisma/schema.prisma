@@ -196,6 +196,7 @@ model Cita {
   modalidad String     @default("Virtual")
   estado    EstadoCita @default(PENDIENTE)
   notas     String?    @db.Text
+  enlaceReunion String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -219,6 +220,7 @@ model Pago {
   // de este modelo y puede crecer sin migración.
   metodo    String?
   fechaPago DateTime?
+  comprobanteUrl String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -14,6 +14,7 @@ import {
   X,
   Save,
   Printer,
+  Download,
 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
@@ -39,6 +40,7 @@ type CitaApi = {
   modalidad: string;
   estado: EstadoCita;
   notas: string | null;
+  enlaceReunion?: string | null;
   cliente: {
     id: string;
     linea: LineaAsesoria;
@@ -101,7 +103,7 @@ function FilaCita({
           </span>
           {cita.modalidad === "Virtual" && cita.estado !== "CANCELADA" && (
             <a
-              href={`https://meet.jit.si/Avanza-Coaching-${cita.id}`}
+              href={cita.enlaceReunion || `https://meet.jit.si/Avanza-Coaching-${cita.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-semibold text-avanza-blue hover:underline"
@@ -124,6 +126,7 @@ function FilaCita({
               modalidad: cita.modalidad,
               clienteNombre: cita.cliente.usuario.nombre,
               coachNombre: cita.coach?.nombre,
+              enlaceReunion: cita.enlaceReunion,
             }}
           />
         </div>
@@ -145,28 +148,37 @@ export default function AdminCitasPage() {
 
   const [citaNotas, setCitaNotas] = useState<CitaApi | null>(null);
   const [textoNotas, setTextoNotas] = useState("");
+  const [enlaceReunionInput, setEnlaceReunionInput] = useState("");
   const [guardandoNotas, setGuardandoNotas] = useState(false);
 
   function abrirBitacora(cita: CitaApi) {
     setCitaNotas(cita);
     setTextoNotas(cita.notas || "");
+    setEnlaceReunionInput(cita.enlaceReunion || "");
   }
 
   async function guardarBitacora() {
     if (!citaNotas) return;
     setGuardandoNotas(true);
     try {
-      await pedirJson(`/api/admin/citas/${citaNotas.id}/notas`, {
+      await pedirJson(`/api/admin/citas/${citaNotas.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notas: textoNotas }),
+        body: JSON.stringify({
+          notas: textoNotas,
+          enlaceReunion: enlaceReunionInput.trim() || null,
+        }),
       });
       setCitas((prev) =>
-        prev.map((c) => (c.id === citaNotas.id ? { ...c, notas: textoNotas } : c)),
+        prev.map((c) =>
+          c.id === citaNotas.id
+            ? { ...c, notas: textoNotas, enlaceReunion: enlaceReunionInput.trim() || null }
+            : c,
+        ),
       );
       erpToast.fire({
         icon: "success",
-        title: "Bitácora actualizada correctamente",
+        title: "Bitácora y enlace actualizados correctamente",
       });
       setCitaNotas(null);
     } catch (err: unknown) {
@@ -269,7 +281,7 @@ export default function AdminCitasPage() {
       <AdminHeader title="Citas" />
 
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex items-center justify-between gap-2">
           <div
             role="tablist"
             aria-label="Filtrar citas por estado"
@@ -282,16 +294,26 @@ export default function AdminCitasPage() {
                 role="tab"
                 aria-selected={filtro === f.id}
                 onClick={() => setFiltro(f.id)}
-                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-150 ${
+                className={`flex-1 rounded-xl px-2.5 py-2 text-xs sm:text-sm font-semibold transition-colors duration-150 ${
                   filtro === f.id
                     ? "bg-avanza-green text-white"
-                    : "bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50"
+                    : "bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:ring-gray-700 dark:text-gray-300"
                 }`}
               >
                 {f.label}
               </button>
             ))}
           </div>
+
+          <a
+            href="/api/admin/citas/exportar"
+            download
+            title="Descargar registro de horas ICF en formato Excel / CSV"
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 active:scale-95 transition-all dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 shrink-0"
+          >
+            <Download className="h-3.5 w-3.5 text-avanza-green dark:text-emerald-400" />
+            <span>Log ICF</span>
+          </a>
         </div>
 
         <div
@@ -479,17 +501,32 @@ export default function AdminCitasPage() {
                 </button>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
-                  Notas de Sesión & Observaciones (Solo visible para Coaches / ICF)
-                </label>
-                <textarea
-                  rows={6}
-                  value={textoNotas}
-                  onChange={(e) => setTextoNotas(e.target.value)}
-                  placeholder="Escribe tus observaciones de la sesión: estado emocional, metas revisadas, acuerdos y tareas convenidas..."
-                  className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-avanza-blue focus:outline-none focus:ring-1 focus:ring-avanza-blue"
-                />
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1 dark:text-gray-300">
+                    Enlace de Videollamada (Meet / Zoom / Teams)
+                  </label>
+                  <input
+                    type="url"
+                    value={enlaceReunionInput}
+                    onChange={(e) => setEnlaceReunionInput(e.target.value)}
+                    placeholder="https://meet.google.com/xyz o https://zoom.us/j/..."
+                    className="w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-avanza-blue focus:outline-none focus:ring-1 focus:ring-avanza-blue dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1 dark:text-gray-300">
+                    Notas de Sesión & Observaciones (Solo visible para Coaches / ICF)
+                  </label>
+                  <textarea
+                    rows={5}
+                    value={textoNotas}
+                    onChange={(e) => setTextoNotas(e.target.value)}
+                    placeholder="Escribe tus observaciones de la sesión: estado emocional, metas revisadas, acuerdos y tareas convenidas..."
+                    className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-avanza-blue focus:outline-none focus:ring-1 focus:ring-avanza-blue dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  />
+                </div>
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-3">

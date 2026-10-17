@@ -52,13 +52,13 @@ export async function obtenerEstado(clienteId: string) {
       pagos: {
         orderBy: { createdAt: "desc" },
         take: 1,
-        select: { id: true, monto: true, estado: true, metodo: true, concepto: true, fechaPago: true },
+        select: { id: true, monto: true, estado: true, metodo: true, concepto: true, fechaPago: true, comprobanteUrl: true },
       },
       citas: {
         where: { fecha: { gte: new Date() } },
         orderBy: { fecha: "asc" },
         take: 1,
-        select: { id: true, fecha: true, modalidad: true, estado: true },
+        select: { id: true, fecha: true, modalidad: true, estado: true, enlaceReunion: true },
       },
       tareas: {
         orderBy: { createdAt: "asc" },
@@ -174,7 +174,7 @@ export async function registrarConsentimiento(clienteId: string) {
   });
 }
 
-export async function registrarPago(clienteId: string, metodo: string) {
+export async function registrarPago(clienteId: string, metodo: string, comprobanteUrl?: string | null) {
   const programa = await programaActivoDelCliente(clienteId);
   if (!programa.consentimientoAceptado) {
     throw new ApiError(409, "Aceptá el consentimiento antes de pagar", "sin_consentimiento");
@@ -195,8 +195,13 @@ export async function registrarPago(clienteId: string, metodo: string) {
   // aprobar la evaluación (ver app/api/admin/evaluaciones/[id]/aprobar).
   return db.pago.update({
     where: { id: pago.id },
-    data: { estado: EstadoPago.PAGADO, metodo, fechaPago: new Date() },
-    select: { id: true, monto: true, estado: true, metodo: true, fechaPago: true },
+    data: {
+      estado: EstadoPago.PAGADO,
+      metodo,
+      fechaPago: new Date(),
+      comprobanteUrl: comprobanteUrl ?? null,
+    },
+    select: { id: true, monto: true, estado: true, metodo: true, fechaPago: true, comprobanteUrl: true },
   });
 }
 
@@ -206,7 +211,7 @@ export async function listarCitasCliente(clienteId: string) {
   return db.cita.findMany({
     where: { clienteId },
     orderBy: { fecha: "desc" },
-    select: { id: true, fecha: true, modalidad: true, estado: true, notas: true },
+    select: { id: true, fecha: true, modalidad: true, estado: true, notas: true, enlaceReunion: true },
   });
 }
 
@@ -228,14 +233,20 @@ export async function crearCitaCliente(
 
   const cliente = await db.cliente.findUnique({ where: { id: clienteId }, select: { coachId: true } });
 
+  const enlaceReunion =
+    datos.modalidad === "Virtual"
+      ? `https://meet.jit.si/Avanza-Coaching-${clienteId.slice(-6)}-${Date.now().toString().slice(-4)}`
+      : null;
+
   return db.cita.create({
     data: {
       clienteId,
       coachId: cliente?.coachId ?? null,
       fecha: datos.fecha,
       modalidad: datos.modalidad,
+      enlaceReunion,
     },
-    select: { id: true, fecha: true, modalidad: true, estado: true },
+    select: { id: true, fecha: true, modalidad: true, estado: true, enlaceReunion: true },
   });
 }
 
