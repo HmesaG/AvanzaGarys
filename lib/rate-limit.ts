@@ -20,22 +20,30 @@ export async function limitarTasa(
 ): Promise<ResultadoLimite> {
   const key = `rl:${clave}`;
 
-  // INCR + EXPIRE NX + TTL en un solo round-trip. EXPIRE NX (Redis >= 7) sólo
-  // fija el TTL si la clave todavía no tiene uno, así el contador no se
-  // renueva con cada intento (eso permitiría fuerza bruta indefinida).
-  const resultados = await redis
-    .multi()
-    .incr(key)
-    .expire(key, ventanaSegundos, "NX")
-    .ttl(key)
-    .exec();
+  // INCR + EXPIRE (si es clave nueva) + TTL en un solo round-trip atómico.
+  // Compatible con Redis < 7 (Redis 5/6 en Windows no soporta el flag 'NX' en EXPIRE).
+  const LUA_RATE_LIMIT = `
+    local current = redis.call('INCR', KEYS[1])
+    if current == 1 then
+      redis.call('EXPIRE', KEYS[1], ARGV[1])
+    end
+    local ttl = redis.call('TTL', KEYS[1])
+    return {current, ttl}
+  `;
+
+  const resultados = (await redis.eval(
+    LUA_RATE_LIMIT,
+    1,
+    key,
+    ventanaSegundos,
+  )) as [number, number];
 
   if (!resultados) {
     throw new Error("Redis no devolvió resultado para el rate limit");
   }
 
-  const conteo = Number(resultados[0]?.[1] ?? 0);
-  const ttl = Number(resultados[2]?.[1] ?? ventanaSegundos);
+  const conteo = Number(resultados[0] ?? 0);
+  const ttl = Number(resultados[1] ?? ventanaSegundos);
 
   return {
     permitido: conteo <= limite,
