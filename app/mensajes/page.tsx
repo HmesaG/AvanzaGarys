@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, FormEvent } from "react";
-import { Send, CheckCheck, Sparkles, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState, FormEvent, ChangeEvent } from "react";
+import { Send, CheckCheck, Sparkles, Loader2, Paperclip } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
+import MensajeBubbleContent from "@/components/MensajeBubbleContent";
 import { listarMensajes, enviarMensaje, type MensajeCliente } from "@/lib/cliente-api";
 import { errorToast } from "@/lib/alerts";
 
@@ -69,6 +70,40 @@ export default function MensajesPage() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [mensajes]);
 
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleSubirArchivo(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSubiendoArchivo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/mensajes/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Error al subir archivo");
+      }
+
+      const data = await res.json();
+      const nuevoMensaje = await enviarMensaje(`[Archivo adjunto] ${data.url}`);
+      setMensajes((prev) => [...prev, nuevoMensaje]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudo subir el archivo";
+      errorToast(msg);
+    } finally {
+      setSubiendoArchivo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const contenido = texto.trim();
@@ -126,7 +161,7 @@ export default function MensajesPage() {
                       {m.de.nombre || "Coach"} (Coach)
                     </p>
                   )}
-                  <p className="leading-relaxed">{m.texto}</p>
+                  <MensajeBubbleContent texto={m.texto} />
                   <div
                     className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
                       esCliente ? "text-emerald-100" : "text-gray-400 dark:text-gray-500"
@@ -169,16 +204,38 @@ export default function MensajesPage() {
 
             <div className="flex items-center gap-2">
               <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleSubirArchivo}
+                accept="image/*,audio/*,application/pdf"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={subiendoArchivo || enviando}
+                aria-label="Adjuntar archivo, imagen o nota de voz"
+                title="Adjuntar imagen, audio o PDF"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 active:scale-95 transition-all dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              >
+                {subiendoArchivo ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-avanza-green" />
+                ) : (
+                  <Paperclip className="h-4 w-4" />
+                )}
+              </button>
+
+              <input
                 type="text"
                 placeholder="Escribe tu mensaje..."
                 value={texto}
                 onChange={(e) => setTexto(e.target.value)}
-                disabled={enviando}
+                disabled={enviando || subiendoArchivo}
                 className="h-11 flex-1 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 focus:border-avanza-green focus:outline-none disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               />
               <button
                 type="submit"
-                disabled={enviando || !texto.trim()}
+                disabled={enviando || subiendoArchivo || !texto.trim()}
                 aria-label="Enviar mensaje"
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-avanza-green text-white shadow-sm transition-transform hover:bg-avanza-green/90 active:scale-95 disabled:opacity-50"
               >

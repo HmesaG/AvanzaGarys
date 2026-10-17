@@ -13,10 +13,12 @@ import {
   FileText,
   X,
   Save,
+  Printer,
 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
+import BotonCalendario from "@/components/BotonCalendario";
 import { ErrorApi, pedirJson } from "@/lib/api-navegador";
 import { erpToast, errorToast } from "@/lib/alerts";
 import {
@@ -110,11 +112,20 @@ function FilaCita({
           <button
             type="button"
             onClick={() => onAbrirNotas(cita)}
-            className="inline-flex items-center gap-1 font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2 py-0.5 rounded-md transition-colors"
+            className="inline-flex min-h-[32px] items-center gap-1 font-semibold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg transition-colors dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
-            <FileText className="h-3 w-3" />
+            <FileText className="h-3.5 w-3.5 text-avanza-green dark:text-emerald-400" />
             {cita.notas ? "Bitácora (1)" : "+ Bitácora"}
           </button>
+          <BotonCalendario
+            cita={{
+              id: cita.id,
+              fecha: cita.fecha,
+              modalidad: cita.modalidad,
+              clienteNombre: cita.cliente.usuario.nombre,
+              coachNombre: cita.coach?.nombre,
+            }}
+          />
         </div>
       </div>
       <span
@@ -481,27 +492,39 @@ export default function AdminCitasPage() {
                 />
               </div>
 
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCitaNotas(null)}
-                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+              <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-3">
+                <a
+                  href={`/admin/citas/${citaNotas.id}/reporte`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={guardarBitacora}
-                  disabled={guardandoNotas}
-                  className="flex items-center gap-1.5 rounded-xl bg-avanza-blue px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {guardandoNotas ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Save className="h-3.5 w-3.5" />
-                  )}
-                  {guardandoNotas ? "Guardando..." : "Guardar Bitácora"}
-                </button>
+                  <Printer className="h-3.5 w-3.5 text-avanza-green" />
+                  <span>Reporte ICF / Imprimir</span>
+                </a>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCitaNotas(null)}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={guardarBitacora}
+                    disabled={guardandoNotas}
+                    className="flex items-center gap-1.5 rounded-xl bg-avanza-green px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-avanza-green/90 disabled:opacity-50"
+                  >
+                    {guardandoNotas ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                    {guardandoNotas ? "Guardando..." : "Guardar Bitácora"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

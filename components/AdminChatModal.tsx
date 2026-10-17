@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, FormEvent } from "react";
-import { Send, X, MessageCircle, Sparkles, Loader2, CheckCheck } from "lucide-react";
+import { Send, X, MessageCircle, Sparkles, Loader2, CheckCheck, Paperclip } from "lucide-react";
 import { pedirJson, ErrorApi } from "@/lib/api-navegador";
-import { errorToast, erpToast } from "@/lib/alerts";
+import { errorToast, successToast } from "@/lib/alerts";
 import { iniciales } from "@/lib/admin-formato";
+import MensajeBubbleContent from "@/components/MensajeBubbleContent";
 
 export type MensajeChat = {
   id: string;
@@ -33,7 +34,9 @@ export default function AdminChatModal({
   const [enviando, setEnviando] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [generandoIa, setGenerandoIa] = useState(false);
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function cargarMensajes() {
     try {
@@ -103,6 +106,55 @@ export default function AdminChatModal({
       errorToast("No se pudo obtener sugerencia del copiloto");
     } finally {
       setGenerandoIa(false);
+    }
+  }
+
+  async function handleSubirArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      errorToast("El archivo no debe exceder los 10MB");
+      return;
+    }
+
+    setSubiendoArchivo(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/mensajes/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Error al subir archivo");
+      }
+
+      const data = await res.json();
+      const textoAdjunto = `[Archivo adjunto] ${data.url} (${file.name})`;
+
+      const postRes = await pedirJson<{ mensaje: MensajeChat }>(
+        `/api/admin/clientes/${clienteId}/mensajes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texto: textoAdjunto }),
+        },
+      );
+
+      if (postRes?.mensaje) {
+        setMensajes((prev) => [...prev, postRes.mensaje]);
+      }
+      successToast("Archivo enviado con éxito");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al subir y enviar archivo";
+      errorToast(msg);
+    } finally {
+      setSubiendoArchivo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -191,20 +243,20 @@ export default function AdminChatModal({
                   className={`flex animate-bubble-in ${esStaff ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed ${
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed ${
                       esStaff
                         ? "rounded-br-sm bg-avanza-green text-white"
                         : "rounded-bl-sm bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700"
                     }`}
                   >
                     {!esStaff && (
-                      <p className="mb-0.5 font-bold text-gray-500 dark:text-gray-400 text-[10px]">
+                      <p className="mb-1 font-bold text-gray-500 dark:text-gray-400 text-[10px]">
                         {m.de.nombre}
                       </p>
                     )}
-                    <p>{m.texto}</p>
+                    <MensajeBubbleContent texto={m.texto} />
                     <div
-                      className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
+                      className={`mt-1.5 flex items-center justify-end gap-1 text-[10px] ${
                         esStaff ? "text-emerald-100" : "text-gray-400 dark:text-gray-500"
                       }`}
                     >
@@ -233,7 +285,7 @@ export default function AdminChatModal({
             <button
               type="button"
               onClick={handleSugerirIa}
-              disabled={generandoIa || enviando}
+              disabled={generandoIa || enviando || subiendoArchivo}
               className="inline-flex min-h-[30px] items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all disabled:opacity-60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border dark:border-emerald-800/40"
             >
               {generandoIa ? (
@@ -243,20 +295,44 @@ export default function AdminChatModal({
               )}
               {generandoIa ? "Generando respuesta..." : "Copiloto IA (Sugerir respuesta)"}
             </button>
+            {subiendoArchivo && (
+              <span className="flex items-center gap-1 text-xs text-avanza-green font-medium">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Subiendo archivo...
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleSubirArchivo}
+              disabled={subiendoArchivo || enviando}
+              className="hidden"
+              accept="image/*,audio/*,.pdf,.doc,.docx"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={subiendoArchivo || enviando}
+              title="Adjuntar imagen, audio o documento"
+              aria-label="Adjuntar archivo o nota de voz"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white transition-colors disabled:opacity-50"
+            >
+              <Paperclip className="h-5 w-5" />
+            </button>
             <input
               type="text"
               placeholder={`Escribe un mensaje para ${clienteNombre.split(" ")[0]}...`}
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              disabled={enviando}
+              disabled={enviando || subiendoArchivo}
               className="h-11 flex-1 rounded-xl border border-gray-200 bg-white px-4 text-xs sm:text-sm text-gray-900 focus:border-avanza-green focus:outline-none disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
             <button
               type="submit"
-              disabled={enviando || !texto.trim()}
+              disabled={enviando || subiendoArchivo || !texto.trim()}
               aria-label="Enviar respuesta"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-avanza-green text-white shadow-sm transition-transform hover:bg-avanza-green/90 active:scale-95 disabled:opacity-50"
             >

@@ -6,6 +6,7 @@ import { Calendar, Clock, Laptop, MapPin, CheckCircle2, X, Lock, Video, External
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
+import BotonCalendario from "@/components/BotonCalendario";
 import {
   obtenerEstado,
   crearCita,
@@ -186,8 +187,12 @@ export default function AgendaPage() {
               </button>
             </div>
 
+            <div className="mt-3 flex items-center justify-between">
+              <BotonCalendario cita={sesionActual} />
+            </div>
+
             {sesionActual.modalidad === "Virtual" && (
-              <div className="mt-4 pt-3 border-t border-white/20">
+              <div className="mt-3 pt-3 border-t border-white/20">
                 <a
                   href={`https://meet.jit.si/Avanza-Coaching-${sesionActual.id}`}
                   target="_blank"
