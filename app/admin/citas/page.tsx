@@ -73,7 +73,7 @@ function FilaCita({ cita }: { cita: CitaApi }) {
         <p className="truncate text-sm font-semibold text-gray-900">
           {cita.cliente.usuario.nombre}
         </p>
-        <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
+        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-500">
           <span className="capitalize">{formatFechaCorta(cita.fecha)}</span>
           <span className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
@@ -81,12 +81,22 @@ function FilaCita({ cita }: { cita: CitaApi }) {
           </span>
           <span className="flex items-center gap-1">
             {cita.modalidad === "Virtual" ? (
-              <Video className="h-3.5 w-3.5" aria-hidden="true" />
+              <Video className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
             ) : (
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
             )}
             {cita.modalidad}
           </span>
+          {cita.modalidad === "Virtual" && cita.estado !== "CANCELADA" && (
+            <a
+              href={`https://meet.jit.si/Avanza-Coaching-${cita.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-avanza-blue hover:underline"
+            >
+              Sala Virtual &rarr;
+            </a>
+          )}
         </div>
       </div>
       <span

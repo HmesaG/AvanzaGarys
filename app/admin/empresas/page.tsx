@@ -8,6 +8,7 @@ import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import { ErrorApi, pedirJson } from "@/lib/api-navegador";
 import { erpAlert, successToast } from "@/lib/alerts";
+import { exportarInformeEmpresaPDF } from "@/lib/reportes-pdf";
 
 type EmpresaLista = { id: string; nombre: string; _count: { clientes: number } };
 type EmpresaDetalle = {
@@ -164,11 +165,40 @@ export default function AdminEmpresasPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => window.print()}
-                        className="flex items-center gap-1.5 rounded-xl bg-white border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm"
+                        onClick={() => {
+                          const diag = detalle.clientes.find((c) => c.diagnostico)?.diagnostico;
+                          exportarInformeEmpresaPDF({
+                            empresaNombre: detalle.nombre,
+                            ruc: detalle.ruc,
+                            telefono: detalle.telefono,
+                            totalClientes: detalle.clientes.length,
+                            clientesActivos: detalle.clientes.filter((c) => c.diagnosticoCompletado).length,
+                            promedioProgreso: detalle.metricas?.tasaCompletado ?? 0,
+                            fechaGeneracion: new Date().toLocaleDateString("es-ES", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            }),
+                            diagnostico: diag
+                              ? {
+                                  climaLaboral: diag.climaLaboral,
+                                  principalDesafio: diag.principalDesafio,
+                                  nivelComunicacion: diag.nivelComunicacion,
+                                  objetivoEmpresa: diag.objetivoEmpresa,
+                                }
+                              : null,
+                            colaboradores: detalle.clientes.map((c) => ({
+                              nombre: c.nombre,
+                              email: c.email,
+                              programa: "Coaching Corporativo",
+                              progreso: c.diagnosticoCompletado ? 100 : 25,
+                            })),
+                          });
+                        }}
+                        className="flex items-center gap-1.5 rounded-xl bg-white border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-all"
                       >
                         <Printer className="h-3.5 w-3.5 text-gray-500" />
-                        Imprimir / PDF
+                        Descargar Informe PDF
                       </button>
                     </div>
 

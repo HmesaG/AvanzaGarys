@@ -8,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import { obtenerEstado, alternarTarea as alternarTareaApi, type EstadoCliente, type EstadoTarea } from "@/lib/cliente-api";
 import { successToast, errorToast } from "@/lib/alerts";
+import { exportarInformeClientePDF } from "@/lib/reportes-pdf";
 
 export default function ProcesoPage() {
   const [estado, setEstado] = useState<EstadoCliente | null>(null);
@@ -22,6 +23,25 @@ export default function ProcesoPage() {
 
   const completadas = tareas.filter((t) => t.completada).length;
   const progresoTareas = tareas.length > 0 ? Math.round((completadas / tareas.length) * 100) : 0;
+
+  function handleExportarPDF() {
+    if (!estado) return;
+    exportarInformeClientePDF({
+      nombreCliente: "Cliente AvanzA",
+      emailCliente: "",
+      programaNombre: estado.programa?.nombre || "Programa de Coaching",
+      progresoPorcentaje: progresoTareas,
+      totalTareas: tareas.length,
+      tareasCompletadas: completadas,
+      fechaGeneracion: new Date().toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+      lineaCoaching: estado.linea || "PERSONAL",
+      tareas: tareas.map((t) => ({ label: t.label, completada: t.completada })),
+    });
+  }
 
   async function toggleTarea(id: string) {
     const anterior = tareas;
@@ -100,11 +120,11 @@ export default function ProcesoPage() {
 
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={handleExportarPDF}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 active:scale-[0.99] transition-all"
           >
             <Printer className="h-4 w-4 text-gray-500" />
-            Imprimir / Guardar Informe de Avance (PDF)
+            Descargar / Guardar Informe PDF Membretado
           </button>
         </section>
 

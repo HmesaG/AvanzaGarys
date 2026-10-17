@@ -3,6 +3,7 @@
 // segura de tarjeta simulada AvanzaPay para ambientes locales y de prueba.
 import crypto from "crypto";
 import { db } from "./prisma";
+import { enviarEmail } from "./email";
 import { EstadoPago } from "../generated/prisma/client";
 
 export type MetodoPagoTipo = "Tarjeta" | "Transferencia" | "Efectivo" | "Stripe";
@@ -45,7 +46,28 @@ export async function procesarCheckoutCliente(params: {
       concepto: `${pagoPendiente.concepto ?? "Mensualidad de Coaching"} [${comprobanteNumero}]`,
       fechaPago: new Date(),
     },
+    include: {
+      cliente: {
+        include: { usuario: true },
+      },
+    },
   });
+
+  // Enviar recibo de pago por correo (asíncrono)
+  if (pagoActualizado.cliente?.usuario?.email) {
+    enviarEmail({
+      destinatario: pagoActualizado.cliente.usuario.email,
+      nombreDestinatario: pagoActualizado.cliente.usuario.nombre,
+      asunto: `Recibo de Pago Confirmado [${comprobanteNumero}]`,
+      plantilla: "RECIBO_PAGO",
+      datos: {
+        monto: Number(pagoActualizado.monto),
+        concepto: pagoActualizado.concepto ?? "Servicio de Coaching",
+        metodo: params.metodo,
+        referencia: comprobanteNumero,
+      },
+    }).catch((err) => console.error("[pagos] Error enviando email de recibo:", err));
+  }
 
   return {
     pagoId: pagoActualizado.id,

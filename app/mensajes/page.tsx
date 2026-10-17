@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, FormEvent } from "react";
-import { Send, CheckCheck, Sparkles } from "lucide-react";
+import { Send, CheckCheck, Sparkles, Loader2 } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -12,7 +12,33 @@ export default function MensajesPage() {
   const [mensajes, setMensajes] = useState<MensajeCliente[]>([]);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [generandoIa, setGenerandoIa] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
+
+  async function handleSugerirIa() {
+    setGenerandoIa(true);
+    try {
+      const res = await fetch("/api/cliente/mensajes/ia-copiloto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mensajesRecientes: mensajes.slice(-6).map((m) => ({
+            remitente: m.de.rol === "CLIENTE" ? "Cliente" : "Coach",
+            texto: m.texto,
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error("Error obteniendo sugerencia");
+      const data = await res.json();
+      if (data.sugerencia) {
+        setTexto(data.sugerencia);
+      }
+    } catch {
+      errorToast("No se pudo generar la sugerencia con IA");
+    } finally {
+      setGenerandoIa(false);
+    }
+  }
 
   useEffect(() => {
     listarMensajes().then(setMensajes);
@@ -115,25 +141,43 @@ export default function MensajesPage() {
         {/* Barra de entrada */}
         <form
           onSubmit={handleSubmit}
-          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+64px)] left-0 right-0 z-20 border-t border-gray-200 bg-white/95 px-5 py-3 backdrop-blur-md"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+64px)] left-0 right-0 z-20 border-t border-gray-200 bg-white/95 px-5 py-2.5 backdrop-blur-md"
         >
-          <div className="mx-auto flex max-w-md items-center gap-2">
-            <input
-              type="text"
-              placeholder="Escribe tu mensaje..."
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              disabled={enviando}
-              className="h-11 flex-1 rounded-xl border border-gray-200 px-4 text-sm focus:border-avanza-green focus:outline-none disabled:opacity-60"
-            />
-            <button
-              type="submit"
-              disabled={enviando || !texto.trim()}
-              aria-label="Enviar mensaje"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-avanza-green text-white shadow-sm transition-transform active:scale-95 disabled:opacity-50"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+          <div className="mx-auto max-w-md">
+            <div className="mb-2 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handleSugerirIa}
+                disabled={generandoIa || enviando}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all disabled:opacity-60"
+              >
+                {generandoIa ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                )}
+                {generandoIa ? "Consultando Copiloto IA..." : "Sugerir con Copiloto IA"}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Escribe tu mensaje..."
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                disabled={enviando}
+                className="h-11 flex-1 rounded-xl border border-gray-200 px-4 text-sm focus:border-avanza-green focus:outline-none disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={enviando || !texto.trim()}
+                aria-label="Enviar mensaje"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-avanza-green text-white shadow-sm transition-transform active:scale-95 disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </form>
       </div>

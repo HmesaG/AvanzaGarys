@@ -247,3 +247,72 @@ function generarFeedbackDeterministico(s: SolicitudIaGrow): FeedbackIaGrow {
     proveedorUtilizado: "motor_deterministico",
   };
 }
+
+export async function completarTextoIa(
+  prompt: string,
+  opciones?: { temperatura?: number; maxTokens?: number },
+): Promise<{ texto: string; proveedor: string }> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+
+  if (geminiKey) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: opciones?.temperatura ?? 0.7,
+            maxOutputTokens: opciones?.maxTokens ?? 300,
+          },
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const texto = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (texto) return { texto: texto.trim(), proveedor: "gemini" };
+      }
+    } catch (e) {
+      console.warn("[ia] Gemini error:", (e as Error).message);
+    }
+  }
+
+  if (openaiKey) {
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: opciones?.temperatura ?? 0.7,
+          max_tokens: opciones?.maxTokens ?? 300,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const texto = json?.choices?.[0]?.message?.content;
+        if (texto) return { texto: texto.trim(), proveedor: "openai" };
+      }
+    } catch (e) {
+      console.warn("[ia] OpenAI error:", (e as Error).message);
+    }
+  }
+
+  return {
+    texto:
+      "¡Excelente avance! Para mantener el impulso del plan GROW, ¿cuál es el paso específico y medible que te comprometes a dar en las próximas 24 horas?",
+    proveedor: "motor_deterministico",
+  };
+}
+
+export const iaClient = {
+  generarFeedbackGrow,
+  completarPrompt: completarTextoIa,
+};
+

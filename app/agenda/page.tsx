@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Calendar, Clock, Laptop, MapPin, CheckCircle2, X, Lock } from "lucide-react";
+import { Calendar, Clock, Laptop, MapPin, CheckCircle2, X, Lock, Video, ExternalLink } from "lucide-react";
 import BackHeader from "@/components/BackHeader";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -158,31 +158,48 @@ export default function AgendaPage() {
         {sesionActual && (
           <section
             aria-label="Sesión agendada"
-            className="mb-6 flex items-start justify-between gap-3 rounded-2xl bg-avanza-green p-5 text-white"
+            className="mb-6 rounded-2xl bg-avanza-green p-5 text-white shadow-sm"
           >
-            <div>
-              <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-avanza-green-light">
-                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                Sesión confirmada
-              </p>
-              <p className="mt-2 text-lg font-bold">
-                {new Intl.DateTimeFormat("es-DO", { dateStyle: "long" }).format(new Date(sesionActual.fecha))}
-              </p>
-              <p className="text-sm text-avanza-green-light">
-                {new Intl.DateTimeFormat("es-DO", { hour: "2-digit", minute: "2-digit" }).format(
-                  new Date(sesionActual.fecha),
-                )}{" "}
-                · {sesionActual.modalidad}
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-avanza-green-light">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Sesión confirmada
+                </p>
+                <p className="mt-2 text-lg font-bold">
+                  {new Intl.DateTimeFormat("es-DO", { dateStyle: "long" }).format(new Date(sesionActual.fecha))}
+                </p>
+                <p className="text-sm text-avanza-green-light">
+                  {new Intl.DateTimeFormat("es-DO", { hour: "2-digit", minute: "2-digit" }).format(
+                    new Date(sesionActual.fecha),
+                  )}{" "}
+                  · {sesionActual.modalidad}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelar}
+                aria-label="Cancelar sesión agendada"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 active:scale-95"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleCancelar}
-              aria-label="Cancelar sesión agendada"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 active:scale-95"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
+
+            {sesionActual.modalidad === "Virtual" && (
+              <div className="mt-4 pt-3 border-t border-white/20">
+                <a
+                  href={`https://meet.jit.si/Avanza-Coaching-${sesionActual.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-white text-avanza-green font-semibold text-sm shadow hover:bg-emerald-50 active:scale-[0.98] transition-all"
+                >
+                  <Video className="h-4 w-4" aria-hidden="true" />
+                  Entrar a la Sala Virtual
+                  <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />
+                </a>
+              </div>
+            )}
           </section>
         )}
 
