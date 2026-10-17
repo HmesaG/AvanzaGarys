@@ -24,7 +24,10 @@ type SesionDetalle = {
   id: string;
   semana: number;
   etapa: EtapaGrowValor;
-  respuestas: { pregunta: string; respuesta: string }[] | null;
+  respuestas:
+    | { pregunta: string; respuesta: string }[]
+    | { items: { pregunta: string; respuesta: string }[]; feedbackIa?: { reflexion: string; fortalezas?: string[]; desafiosDetectados?: string[] } }
+    | null;
   notaCoach: string | null;
   completadaAt: string | null;
   compromisos: { id: string; accion: string; fechaPrevista: string; estado: string; resultado: string | null }[];
@@ -219,15 +222,28 @@ export default function AdminPlanesGrowPage() {
                             {s.completadaAt ? "Completada" : "Pendiente"}
                           </span>
                         </div>
-                        {s.respuestas && (
-                          <ul className="mt-2 space-y-1">
-                            {s.respuestas.map((r, i) => (
-                              <li key={i} className="text-xs text-gray-600">
-                                <span className="font-medium text-gray-800">{r.pregunta}</span> {r.respuesta}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        {(() => {
+                          if (!s.respuestas) return null;
+                          const items = Array.isArray(s.respuestas) ? s.respuestas : s.respuestas.items || [];
+                          const feedback = !Array.isArray(s.respuestas) ? s.respuestas.feedbackIa : null;
+                          return (
+                            <>
+                              <ul className="mt-2 space-y-1">
+                                {items.map((r, i) => (
+                                  <li key={i} className="text-xs text-gray-600">
+                                    <span className="font-medium text-gray-800">{r.pregunta}</span> {r.respuesta}
+                                  </li>
+                                ))}
+                              </ul>
+                              {feedback && (
+                                <div className="mt-2 rounded-xl bg-emerald-50/70 p-2.5 text-xs text-emerald-950 border border-emerald-100">
+                                  <span className="font-semibold text-avanza-green-dark">💡 Análisis IA: </span>
+                                  <span>{feedback.reflexion}</span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                         {s.compromisos.length > 0 && (
                           <ul className="mt-2 space-y-1 border-t border-gray-100 pt-2">
                             {s.compromisos.map((c) => (

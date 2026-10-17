@@ -18,7 +18,9 @@ export async function POST(request: NextRequest) {
   try {
     verificarOrigen(request);
     const usuario = await requireRole(Rol.CLIENTE);
-    const plan = await iniciarPlan(usuario.clienteId!);
+    const body = await request.json().catch(() => ({}));
+    const tipo = typeof body?.tipo === "string" ? body.tipo : "LIDERAZGO";
+    const plan = await iniciarPlan(usuario.clienteId!, tipo);
     return jsonOk({ plan }, 201);
   } catch (error) {
     return manejarError(error);

@@ -26,6 +26,15 @@ function patch<T>(url: string, data?: unknown) {
 export type EtapaGrowValor = "GOAL" | "REALITY" | "OPTIONS" | "WILL";
 export type EstadoCompromisoValor = "PENDIENTE" | "CUMPLIDO" | "NO_CUMPLIDO";
 
+export type FeedbackIaGrow = {
+  reflexion: string;
+  fortalezas: string[];
+  desafiosDetectados: string[];
+  preguntasReflexivas: string[];
+  sugerenciasCompromisos?: string[];
+  proveedorUtilizado: "gemini" | "openai" | "anthropic" | "motor_deterministico";
+};
+
 export type CompromisoGrow = {
   id: string;
   accion: string;
@@ -38,7 +47,10 @@ export type SesionGrow = {
   id: string;
   semana: number;
   etapa: EtapaGrowValor;
-  respuestas: { pregunta: string; respuesta: string }[] | null;
+  respuestas:
+    | { pregunta: string; respuesta: string }[]
+    | { items: { pregunta: string; respuesta: string }[]; feedbackIa?: FeedbackIaGrow }
+    | null;
   notaCoach: string | null;
   completadaAt: string | null;
   compromisos: CompromisoGrow[];
@@ -57,14 +69,20 @@ export function obtenerPlanGrow() {
   return pedir<{ plan: PlanGrow | null }>("/api/cliente/plan-grow").then((r) => r.plan);
 }
 
-export function iniciarPlanGrow() {
-  return post<{ plan: PlanGrow }>("/api/cliente/plan-grow").then((r) => r.plan);
+export function iniciarPlanGrow(tipo: string = "LIDERAZGO") {
+  return post<{ plan: PlanGrow }>("/api/cliente/plan-grow", { tipo }).then((r) => r.plan);
 }
 
 export function responderSesionGrow(sesionId: string, respuestas: { pregunta: string; respuesta: string }[]) {
   return post<{ plan: PlanGrow }>(`/api/cliente/plan-grow/sesiones/${sesionId}`, { respuestas }).then(
     (r) => r.plan,
   );
+}
+
+export function obtenerSugerenciasIaCompromisos() {
+  return pedir<{ sugerencias: { accion: string; diasSugeridos: number; rationale: string }[] }>(
+    "/api/cliente/plan-grow/ia/sugerir-compromisos",
+  ).then((r) => r.sugerencias);
 }
 
 export function crearCompromisosGrow(compromisos: { accion: string; fechaPrevista: string }[]) {

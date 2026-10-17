@@ -3,8 +3,9 @@
 import { db } from "./prisma";
 import { ApiError } from "./http";
 import { obtenerEstado } from "./cliente-queries";
-import { COMPROMISOS_REQUERIDOS, ETAPA_POR_SEMANA, siguienteEtapa } from "./grow-constants";
+import { COMPROMISOS_REQUERIDOS, ETAPA_POR_SEMANA, siguienteEtapa, CATALOGO_PLANES_GROW, type TipoPlanGrow } from "./grow-constants";
 import { EstadoCompromiso, EstadoPlanGrow, EtapaGrow } from "../generated/prisma/client";
+import { generarFeedbackGrow, sugerirCompromisosGrow, type FeedbackIaGrow } from "./server/ia-client";
 
 export type RespuestaGrow = { pregunta: string; respuesta: string };
 
@@ -45,7 +46,7 @@ export async function obtenerPlanActivo(clienteId: string) {
   });
 }
 
-export async function iniciarPlan(clienteId: string) {
+export async function iniciarPlan(clienteId: string, tipo: string = "LIDERAZGO") {
   const existente = await db.planGrow.findFirst({
     where: { clienteId, estado: { not: EstadoPlanGrow.CERRADO } },
     select: { id: true },
@@ -63,9 +64,13 @@ export async function iniciarPlan(clienteId: string) {
     );
   }
 
+  // Validar si el tipo está en el catálogo, sino fallback a LIDERAZGO
+  const tipoValido = CATALOGO_PLANES_GROW[tipo as TipoPlanGrow] ? tipo : "LIDERAZGO";
+
   return db.planGrow.create({
     data: {
       clienteId,
+      tipo: tipoValido,
       sesiones: { create: { semana: 1, etapa: ETAPA_POR_SEMANA[1] } },
     },
     select: SELECT_PLAN_COMPLETO,
@@ -75,7 +80,14 @@ export async function iniciarPlan(clienteId: string) {
 async function sesionDelCliente(clienteId: string, sesionId: string) {
   const sesion = await db.sesionGrow.findUnique({
     where: { id: sesionId },
-    select: { id: true, semana: true, etapa: true, completadaAt: true, planId: true, plan: { select: { clienteId: true, estado: true } } },
+    select: {
+      id: true,
+      semana: true,
+      etapa: true,
+      completadaAt: true,
+      planId: true,
+      plan: { select: { clienteId: true, estado: true, tipo: true } },
+    },
   });
   if (!sesion || sesion.plan.clienteId !== clienteId) {
     throw new ApiError(404, "La sesión no existe", "no_encontrada");
@@ -89,10 +101,31 @@ export async function responderSesion(clienteId: string, sesionId: string, respu
     throw new ApiError(409, "Esta sesión ya fue respondida", "ya_respondida");
   }
 
+  // Generar análisis con Inteligencia Artificial (con fallback seguro)
+  let feedbackIa: FeedbackIaGrow | null = null;
+  try {
+    feedbackIa = await generarFeedbackGrow({
+      etapa: sesion.etapa as any,
+      semana: sesion.semana,
+      tipoPlan: sesion.plan.tipo,
+      respuestas,
+    });
+  } catch (error) {
+    console.error("Error al generar feedback IA:", error);
+  }
+
+  const contenidoGuardar = {
+    items: respuestas,
+    feedbackIa,
+  };
+
   return db.$transaction(async (tx) => {
     await tx.sesionGrow.update({
       where: { id: sesionId },
-      data: { respuestas, completadaAt: new Date() },
+      data: {
+        respuestas: contenidoGuardar as any,
+        completadaAt: new Date(),
+      },
     });
 
     const siguiente = siguienteEtapa(sesion.etapa);
@@ -107,6 +140,42 @@ export async function responderSesion(clienteId: string, sesionId: string, respu
     }
 
     return tx.planGrow.findUniqueOrThrow({ where: { id: sesion.planId }, select: SELECT_PLAN_COMPLETO });
+  });
+}
+
+export async function obtenerSugerenciasCompromisosIa(clienteId: string) {
+  const plan = await db.planGrow.findFirst({
+    where: { clienteId, estado: EstadoPlanGrow.ACTIVO },
+    select: {
+      id: true,
+      tipo: true,
+      sesiones: {
+        select: {
+          etapa: true,
+          respuestas: true,
+        },
+      },
+    },
+  });
+
+  if (!plan) {
+    throw new ApiError(404, "No hay un plan activo", "no_encontrado");
+  }
+
+  const sesionWill = plan.sesiones.find((s) => s.etapa === EtapaGrow.WILL);
+  const sesionGoal = plan.sesiones.find((s) => s.etapa === EtapaGrow.GOAL);
+
+  const extraerRespuestas = (raw: any): RespuestaGrow[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (raw.items && Array.isArray(raw.items)) return raw.items;
+    return [];
+  };
+
+  return sugerirCompromisosGrow({
+    tipoPlan: plan.tipo,
+    respuestasWill: extraerRespuestas(sesionWill?.respuestas),
+    respuestasGoal: extraerRespuestas(sesionGoal?.respuestas),
   });
 }
 
