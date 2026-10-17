@@ -82,7 +82,12 @@ function LoginForm() {
       // Staff (ADMINISTRADOR/COACH/SECRETARIA) va al panel; CLIENTE a su home.
       // El `next` del middleware (si venía de una ruta protegida) tiene prioridad.
       const destino =
-        destinoSeguro(searchParams.get("next")) ?? (usuario.rol === "CLIENTE" ? "/home" : "/admin");
+        destinoSeguro(searchParams.get("next")) ??
+        (usuario.rol === "CLIENTE"
+          ? "/home"
+          : usuario.rol === "SECRETARIA"
+          ? "/admin/secretaria"
+          : "/admin");
       router.push(destino);
     } catch (error) {
       const mensaje =
