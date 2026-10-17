@@ -20,7 +20,7 @@ export default function AdminBottomNav() {
   return (
     <nav
       aria-label="Navegación del panel administrativo"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur safe-bottom"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur safe-bottom dark:border-gray-800 dark:bg-gray-900/95"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-between">
         {ITEMS.map(({ href, label, icon: Icon, exact }) => {
@@ -36,12 +36,16 @@ export default function AdminBottomNav() {
               >
                 <span
                   className={`flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${
-                    active ? "bg-avanza-green-light" : "bg-transparent group-active:bg-gray-100"
+                    active
+                      ? "bg-avanza-green-light dark:bg-emerald-950/50"
+                      : "bg-transparent group-active:bg-gray-100 dark:group-active:bg-gray-800"
                   }`}
                 >
                   <Icon
                     className={`h-5 w-5 transition-colors duration-150 ${
-                      active ? "text-avanza-green" : "text-gray-400 group-hover:text-gray-600"
+                      active
+                        ? "text-avanza-green dark:text-emerald-400"
+                        : "text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"
                     }`}
                     strokeWidth={active ? 2.25 : 1.9}
                     aria-hidden="true"
@@ -49,7 +53,9 @@ export default function AdminBottomNav() {
                 </span>
                 <span
                   className={`transition-colors duration-150 ${
-                    active ? "font-semibold text-avanza-green" : "text-gray-500"
+                    active
+                      ? "font-semibold text-avanza-green dark:text-emerald-400"
+                      : "text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {label}

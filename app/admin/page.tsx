@@ -9,8 +9,9 @@ import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import EvaluacionesPendientes from "./EvaluacionesPendientes";
+import AdminAnalyticsChart from "@/components/AdminAnalyticsChart";
 import { requireSesionPagina } from "@/lib/auth";
-import { listarCitas, statsDashboard } from "@/lib/admin-queries";
+import { listarCitas, statsDashboard, obtenerMetricasGraficos } from "@/lib/admin-queries";
 import { obtenerAlertasSistema } from "@/lib/admin-alertas";
 import {
   ESTADO_CITA_BADGE,
@@ -41,10 +42,11 @@ export default async function AdminDashboardPage() {
   const hasta = new Date(desde);
   hasta.setDate(hasta.getDate() + DIAS_PROXIMAS_CITAS);
 
-  const [stats, citasDelRango, alertas] = await Promise.all([
+  const [stats, citasDelRango, alertas, metricasGraficos] = await Promise.all([
     statsDashboard(),
     listarCitas({ desde, hasta }),
     obtenerAlertasSistema(usuario.rol === Rol.COACH ? usuario.id : undefined),
+    obtenerMetricasGraficos(),
   ]);
 
   // Una cita cancelada no es una "próxima cita"; el resto sí se muestra.
@@ -115,6 +117,8 @@ export default async function AdminDashboardPage() {
             </div>
           ))}
         </section>
+
+        <AdminAnalyticsChart data={metricasGraficos} />
 
         {alertas.total > 0 && (
           <section aria-label="Alertas del sistema" className="mb-6">

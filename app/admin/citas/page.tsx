@@ -10,6 +10,9 @@ import {
   CalendarDays,
   Loader2,
   AlertCircle,
+  FileText,
+  X,
+  Save,
 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
@@ -60,7 +63,13 @@ const VISTAS: { id: "lista" | "calendario"; label: string; icon: typeof List }[]
 
 const DIAS_SEMANA = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
 
-function FilaCita({ cita }: { cita: CitaApi }) {
+function FilaCita({
+  cita,
+  onAbrirNotas,
+}: {
+  cita: CitaApi;
+  onAbrirNotas: (cita: CitaApi) => void;
+}) {
   return (
     <li className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4">
       <span
@@ -97,6 +106,14 @@ function FilaCita({ cita }: { cita: CitaApi }) {
               Sala Virtual &rarr;
             </a>
           )}
+          <button
+            type="button"
+            onClick={() => onAbrirNotas(cita)}
+            className="inline-flex items-center gap-1 font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2 py-0.5 rounded-md transition-colors"
+          >
+            <FileText className="h-3 w-3" />
+            {cita.notas ? "Bitácora (1)" : "+ Bitácora"}
+          </button>
         </div>
       </div>
       <span
@@ -113,6 +130,34 @@ export default function AdminCitasPage() {
   const [filtro, setFiltro] = useState<EstadoCita | "todas">("todas");
   const [vista, setVista] = useState<"lista" | "calendario">("lista");
   const [diaSeleccionado, setDiaSeleccionado] = useState<number | null>(null);
+
+  const [citaNotas, setCitaNotas] = useState<CitaApi | null>(null);
+  const [textoNotas, setTextoNotas] = useState("");
+  const [guardandoNotas, setGuardandoNotas] = useState(false);
+
+  function abrirBitacora(cita: CitaApi) {
+    setCitaNotas(cita);
+    setTextoNotas(cita.notas || "");
+  }
+
+  async function guardarBitacora() {
+    if (!citaNotas) return;
+    setGuardandoNotas(true);
+    try {
+      await pedirJson(`/api/admin/citas/${citaNotas.id}/notas`, {
+        method: "PATCH",
+        body: JSON.stringify({ notas: textoNotas }),
+      });
+      setCitas((prev) =>
+        prev.map((c) => (c.id === citaNotas.id ? { ...c, notas: textoNotas } : c)),
+      );
+      setCitaNotas(null);
+    } catch {
+      alert("Error al guardar la bitácora.");
+    } finally {
+      setGuardandoNotas(false);
+    }
+  }
 
   const [citas, setCitas] = useState<CitaApi[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -276,7 +321,7 @@ export default function AdminCitasPage() {
           ) : (
             <ul className="space-y-3">
               {citasFiltradas.map((cita) => (
-                <FilaCita key={cita.id} cita={cita} />
+                <FilaCita key={cita.id} cita={cita} onAbrirNotas={abrirBitacora} />
               ))}
             </ul>
           )
@@ -382,11 +427,75 @@ export default function AdminCitasPage() {
                   </h2>
                   <ul className="space-y-3">
                     {citasDelDiaSeleccionado.map((cita) => (
-                      <FilaCita key={cita.id} cita={cita} />
+                      <FilaCita key={cita.id} cita={cita} onAbrirNotas={abrirBitacora} />
                     ))}
                   </ul>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Bitácora Confidencial */}
+        {citaNotas && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-scale-up">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900">Bitácora Confidencial de Coaching</h3>
+                    <p className="text-xs text-gray-500">
+                      Coachee: {citaNotas.cliente.usuario.nombre} · {citaNotas.modalidad}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCitaNotas(null)}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                  Notas de Sesión & Observaciones (Solo visible para Coaches / ICF)
+                </label>
+                <textarea
+                  rows={6}
+                  value={textoNotas}
+                  onChange={(e) => setTextoNotas(e.target.value)}
+                  placeholder="Escribe tus observaciones de la sesión: estado emocional, metas revisadas, acuerdos y tareas convenidas..."
+                  className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-avanza-blue focus:outline-none focus:ring-1 focus:ring-avanza-blue"
+                />
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCitaNotas(null)}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={guardarBitacora}
+                  disabled={guardandoNotas}
+                  className="flex items-center gap-1.5 rounded-xl bg-avanza-blue px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {guardandoNotas ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
+                  {guardandoNotas ? "Guardando..." : "Guardar Bitácora"}
+                </button>
+              </div>
             </div>
           </div>
         )}

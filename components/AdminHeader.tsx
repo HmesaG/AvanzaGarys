@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, Bell } from "lucide-react";
 import { erpAlert, erpToast } from "@/lib/alerts";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type AlertaItem = {
   id: string;
@@ -82,19 +83,22 @@ export default function AdminHeader({ title }: { title: string }) {
 
         <h1 className="text-lg font-bold text-white">{title}</h1>
 
-        <button
-          type="button"
-          onClick={handleVerNotificaciones}
-          aria-label="Ver notificaciones"
-          className="relative flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors duration-150 hover:bg-white/10 active:scale-95"
-        >
-          <Bell className="h-5 w-5" aria-hidden="true" />
-          {totalAlertas > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-avanza-green">
-              {totalAlertas > 9 ? "9+" : totalAlertas}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={handleVerNotificaciones}
+            aria-label="Ver notificaciones"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors duration-150 hover:bg-white/10 active:scale-95"
+          >
+            <Bell className="h-5 w-5" aria-hidden="true" />
+            {totalAlertas > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-avanza-green">
+                {totalAlertas > 9 ? "9+" : totalAlertas}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </header>
   );

@@ -354,3 +354,74 @@ export async function listarCitas(filtro: FiltroCitas) {
     },
   });
 }
+
+export async function obtenerMetricasGraficos() {
+  const ahora = new Date();
+
+  // 1. Distribución de líneas
+  const [personal, corporativo, deportivo] = await Promise.all([
+    db.cliente.count({ where: { linea: "PERSONAL" } }),
+    db.cliente.count({ where: { linea: "CORPORATIVO" } }),
+    db.cliente.count({ where: { linea: "DEPORTIVO" } }),
+  ]);
+  const totalLineas = Math.max(1, personal + corporativo + deportivo);
+
+  const distribucionLineas = [
+    {
+      linea: "Personal / Ejecutivo",
+      cantidad: personal,
+      porcentaje: Math.round((personal / totalLineas) * 100),
+      color: "#059669",
+    },
+    {
+      linea: "Coaching Corporativo",
+      cantidad: corporativo,
+      porcentaje: Math.round((corporativo / totalLineas) * 100),
+      color: "#0284c7",
+    },
+    {
+      linea: "Coaching Deportivo",
+      cantidad: deportivo,
+      porcentaje: Math.round((deportivo / totalLineas) * 100),
+      color: "#d97706",
+    },
+  ];
+
+  // 2. Ingresos de los últimos 6 meses
+  const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const ingresosMensuales = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+    const finMes = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+
+    const pagos = await db.pago.findMany({
+      where: {
+        estado: "PAGADO",
+        fechaPago: { gte: d, lte: finMes },
+      },
+      select: { monto: true },
+    });
+
+    const suma = pagos.reduce((acc, p) => acc + Number(p.monto), 0);
+    ingresosMensuales.push({
+      mes: nombresMeses[d.getMonth()],
+      monto: suma,
+    });
+  }
+
+  // 3. Cumplimiento GROW
+  const [cumplidos, totalCompromisos] = await Promise.all([
+    db.compromisoGrow.count({ where: { estado: "CUMPLIDO" } }),
+    db.compromisoGrow.count(),
+  ]);
+  const tasaCumplimientoGrow =
+    totalCompromisos > 0 ? Math.round((cumplidos / totalCompromisos) * 100) : 85;
+
+  return {
+    ingresosMensuales,
+    distribucionLineas,
+    tasaCumplimientoGrow,
+  };
+}
+

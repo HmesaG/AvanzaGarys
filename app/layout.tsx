@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import PwaRegister from "@/components/PwaRegister";
 
 export const metadata: Metadata = {
   title: "Avanza — Impulsa tu mejor versión",
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="min-h-screen bg-gray-50 font-sans text-gray-900 antialiased">
+        <PwaRegister />
         {children}
       </body>
     </html>
