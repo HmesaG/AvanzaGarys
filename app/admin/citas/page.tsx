@@ -18,6 +18,7 @@ import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import { ErrorApi, pedirJson } from "@/lib/api-navegador";
+import { erpToast, errorToast } from "@/lib/alerts";
 import {
   ESTADO_CITA_BADGE,
   ESTADO_CITA_DOT,
@@ -146,14 +147,20 @@ export default function AdminCitasPage() {
     try {
       await pedirJson(`/api/admin/citas/${citaNotas.id}/notas`, {
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notas: textoNotas }),
       });
       setCitas((prev) =>
         prev.map((c) => (c.id === citaNotas.id ? { ...c, notas: textoNotas } : c)),
       );
+      erpToast.fire({
+        icon: "success",
+        title: "Bitácora actualizada correctamente",
+      });
       setCitaNotas(null);
-    } catch {
-      alert("Error al guardar la bitácora.");
+    } catch (err: unknown) {
+      const msg = err instanceof ErrorApi ? err.message : "Error al guardar la bitácora";
+      errorToast(msg);
     } finally {
       setGuardandoNotas(false);
     }

@@ -21,6 +21,7 @@ import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import { erpToast, errorToast } from "@/lib/alerts";
+import { pedirJson, ErrorApi } from "@/lib/api-navegador";
 import { LINEA_BADGE, LINEA_LABEL, iniciales } from "@/lib/admin-formato";
 import type { LineaAsesoria } from "@/generated/prisma/client";
 
@@ -59,13 +60,14 @@ export default function CoachesAdminPage() {
 
   async function cargarDatos() {
     try {
-      const res = await fetch("/api/admin/coaches");
-      if (!res.ok) throw new Error("Error al obtener coaches");
-      const data = await res.json();
+      const data = await pedirJson<{ coaches: CoachData[]; sinAsignar: CoacheeItem[] }>(
+        "/api/admin/coaches",
+      );
       setCoaches(data.coaches || []);
       setSinAsignar(data.sinAsignar || []);
-    } catch {
-      errorToast("No se pudo cargar la información de coaches");
+    } catch (err: unknown) {
+      const mensaje = err instanceof ErrorApi ? err.message : "No se pudo cargar la información de coaches";
+      errorToast(mensaje);
     } finally {
       setCargando(false);
     }
@@ -85,7 +87,7 @@ export default function CoachesAdminPage() {
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/admin/coaches", {
+        await pedirJson("/api/admin/coaches", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -94,11 +96,6 @@ export default function CoachesAdminPage() {
           }),
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "No se pudo actualizar la asignación");
-        }
-
         erpToast.fire({
           icon: "success",
           title: "Asignación actualizada correctamente",
@@ -106,8 +103,9 @@ export default function CoachesAdminPage() {
 
         setModalReasignar(null);
         await cargarDatos();
-      } catch (err: any) {
-        errorToast(err.message || "Error al reasignar");
+      } catch (err: unknown) {
+        const mensaje = err instanceof ErrorApi ? err.message : "Error al reasignar el coachee";
+        errorToast(mensaje);
       }
     });
   }

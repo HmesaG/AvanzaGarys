@@ -130,6 +130,80 @@ async function main() {
     if (!data.exito || !data.resumen) throw new Error("Respuesta cron inválida");
   });
 
+  // 9. Directorio y Balance de Carga de Coaches
+  let coachIdTest = null;
+  let clienteIdTest = null;
+  await test("9. Gestión y Asignación de Coaches (/api/admin/coaches)", async () => {
+    // GET coaches
+    const res = await fetch(`${BASE_URL}/api/admin/coaches`, {
+      headers: { Cookie: adminCookie },
+    });
+    if (!res.ok) throw new Error(`Status GET ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data.coaches)) throw new Error("Respuesta no incluye lista de coaches");
+    if (data.coaches.length > 0) {
+      coachIdTest = data.coaches[0].id;
+      if (data.coaches[0].clientes.length > 0) {
+        clienteIdTest = data.coaches[0].clientes[0].id;
+      }
+    }
+    if (!clienteIdTest && data.sinAsignar?.length > 0) {
+      clienteIdTest = data.sinAsignar[0].id;
+    }
+
+    // PATCH con cliente inexistente -> 404
+    const res404 = await fetch(`${BASE_URL}/api/admin/coaches`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie, origin: BASE_URL },
+      body: JSON.stringify({ clienteId: "inexistente_12345", coachId: coachIdTest }),
+    });
+    if (res404.status !== 404) throw new Error(`Esperado 404 para cliente inexistente, recibido ${res404.status}`);
+
+    // PATCH reasignación exitosa si hay cliente y coach
+    if (clienteIdTest && coachIdTest) {
+      const resPatch = await fetch(`${BASE_URL}/api/admin/coaches`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie, origin: BASE_URL },
+        body: JSON.stringify({ clienteId: clienteIdTest, coachId: coachIdTest }),
+      });
+      if (!resPatch.ok) throw new Error(`Status PATCH reasignar ${resPatch.status}`);
+    }
+  });
+
+  // 10. Bitácora Confidencial de Citas (ICF)
+  await test("10. Bitácora Confidencial de Sesión (/api/admin/citas/[id]/notas)", async () => {
+    // Obtener lista de citas
+    const resCitas = await fetch(`${BASE_URL}/api/admin/citas`, {
+      headers: { Cookie: adminCookie },
+    });
+    if (!resCitas.ok) throw new Error(`Status GET citas ${resCitas.status}`);
+    const dataCitas = await resCitas.json();
+    const citaTest = dataCitas.citas?.[0];
+
+    // PATCH cita inexistente -> 404
+    const res404 = await fetch(`${BASE_URL}/api/admin/citas/cita_fantasma/notas`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie, origin: BASE_URL },
+      body: JSON.stringify({ notas: "Nota de prueba" }),
+    });
+    if (res404.status !== 404) throw new Error(`Esperado 404 para cita fantasma, recibido ${res404.status}`);
+
+    // Si hay cita existente, actualizar bitácora
+    if (citaTest) {
+      const notaPrueba = `Observación ICF de auditoría: ${new Date().toISOString()}`;
+      const resPatch = await fetch(`${BASE_URL}/api/admin/citas/${citaTest.id}/notas`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie, origin: BASE_URL },
+        body: JSON.stringify({ notas: notaPrueba }),
+      });
+      if (!resPatch.ok) throw new Error(`Status PATCH notas ${resPatch.status}`);
+      const dataPatch = await resPatch.json();
+      if (dataPatch.cita.notas !== notaPrueba) {
+        throw new Error("La nota guardada no coincide con la nota enviada");
+      }
+    }
+  });
+
   console.log(`\n======================================================`);
   console.log(`📊 RESULTADOS: ${pasadas} Pasadas | ${fallidas} Fallidas`);
   console.log(`======================================================\n`);

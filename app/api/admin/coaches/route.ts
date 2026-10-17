@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
-import { jsonOk, manejarError, jsonError } from "@/lib/http";
+import { jsonOk, manejarError, jsonError, verificarOrigen, leerJson, ApiError } from "@/lib/http";
 import { db } from "@/lib/prisma";
 import { Rol, EstadoCita } from "@/generated/prisma/client";
 
@@ -106,29 +106,42 @@ export async function GET() {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    verificarOrigen(request);
     await requireRole(Rol.ADMINISTRADOR, Rol.SECRETARIA);
 
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body.clienteId !== "string") {
-      return jsonError(400, "clienteId es requerido");
+    const body = await leerJson(request);
+    if (typeof body.clienteId !== "string" || !body.clienteId.trim()) {
+      throw new ApiError(400, "clienteId es requerido", "campo_invalido");
     }
 
     const { clienteId, coachId } = body;
 
-    // Si viene coachId, verificar que el usuario exista y sea COACH
+    // Verificar que el cliente exista
+    const clienteExistente = await db.cliente.findUnique({
+      where: { id: clienteId },
+      select: { id: true },
+    });
+    if (!clienteExistente) {
+      throw new ApiError(404, "Cliente no encontrado", "no_encontrado");
+    }
+
+    // Si viene coachId, verificar que el usuario exista, esté activo y sea COACH
     if (coachId) {
+      if (typeof coachId !== "string") {
+        throw new ApiError(400, "coachId debe ser un string válido", "campo_invalido");
+      }
       const coach = await db.usuario.findUnique({
         where: { id: coachId },
-        select: { id: true, rol: true },
+        select: { id: true, rol: true, activo: true },
       });
-      if (!coach || coach.rol !== Rol.COACH) {
-        return jsonError(400, "El usuario asignado debe ser un coach válido");
+      if (!coach || coach.rol !== Rol.COACH || !coach.activo) {
+        throw new ApiError(400, "El usuario asignado debe ser un coach activo", "coach_invalido");
       }
     }
 
     const clienteActualizado = await db.cliente.update({
       where: { id: clienteId },
-      data: { coachId: coachId || null },
+      data: { coachId: (coachId as string) || null },
       select: {
         id: true,
         coachId: true,

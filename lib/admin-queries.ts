@@ -387,28 +387,35 @@ export async function obtenerMetricasGraficos() {
     },
   ];
 
-  // 2. Ingresos de los últimos 6 meses
+  // 2. Ingresos de los últimos 6 meses (ejecutados en paralelo con agregación en BD)
   const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-  const ingresosMensuales = [];
+  const rangosMeses = [];
 
   for (let i = 5; i >= 0; i--) {
     const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
     const finMes = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-
-    const pagos = await db.pago.findMany({
-      where: {
-        estado: "PAGADO",
-        fechaPago: { gte: d, lte: finMes },
-      },
-      select: { monto: true },
-    });
-
-    const suma = pagos.reduce((acc, p) => acc + Number(p.monto), 0);
-    ingresosMensuales.push({
+    rangosMeses.push({
       mes: nombresMeses[d.getMonth()],
-      monto: suma,
+      inicio: d,
+      fin: finMes,
     });
   }
+
+  const ingresosMensuales = await Promise.all(
+    rangosMeses.map(async ({ mes, inicio, fin }) => {
+      const agregado = await db.pago.aggregate({
+        _sum: { monto: true },
+        where: {
+          estado: EstadoPago.PAGADO,
+          fechaPago: { gte: inicio, lte: fin },
+        },
+      });
+      return {
+        mes,
+        monto: Number(agregado._sum.monto ?? 0),
+      };
+    }),
+  );
 
   // 3. Cumplimiento GROW
   const [cumplidos, totalCompromisos] = await Promise.all([
