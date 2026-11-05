@@ -190,10 +190,12 @@ function FilaCita({
 
 function DetalleCliente({
   cliente,
+  ocultarMontos = false,
   onVolver,
   onAbrirChat,
 }: {
   cliente: ClienteDetalle;
+  ocultarMontos?: boolean;
   onVolver: () => void;
   onAbrirChat: (c: { id: string; nombre: string; linea: string }) => void;
 }) {
@@ -484,10 +486,10 @@ function DetalleCliente({
       )}
 
       {cliente.pagos.length > 0 && (
-        <section aria-label="Pagos">
+        <section aria-label="Pagos" className="mb-6">
           <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
             <Wallet className="h-4 w-4 text-avanza-orange" aria-hidden="true" />
-            Pagos
+            Estado de Pago con Administración
           </h2>
           <ul className="space-y-3">
             {cliente.pagos.map((pago) => (
@@ -496,15 +498,21 @@ function DetalleCliente({
                 className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold tabular-nums text-gray-900">
-                    {formatMonto(pago.monto)}
-                  </p>
+                  {ocultarMontos ? (
+                    <p className="text-sm font-semibold text-gray-900">
+                      {pago.concepto ?? "Programa de Coaching"}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-semibold tabular-nums text-gray-900">
+                      {formatMonto(pago.monto)}
+                    </p>
+                  )}
                   <p className="mt-0.5 text-xs text-gray-500">
-                    {pago.concepto ?? "Sin concepto"}
-                    {pago.metodo ? ` · ${pago.metodo}` : ""}
-                    {pago.fechaPago ? ` · ${formatFechaCorta(pago.fechaPago)}` : ""}
+                    {ocultarMontos
+                      ? "Gestión de cobro administrada por el centro"
+                      : `${pago.concepto ?? "Sin concepto"}${pago.metodo ? ` · ${pago.metodo}` : ""}${pago.fechaPago ? ` · ${formatFechaCorta(pago.fechaPago)}` : ""}`}
                   </p>
-                  {pago.comprobanteUrl && (
+                  {!ocultarMontos && pago.comprobanteUrl && (
                     <div className="mt-1.5">
                       <a
                         href={pago.comprobanteUrl}
@@ -568,6 +576,7 @@ export default function AdminClientesPage() {
   const [errorLista, setErrorLista] = useState<string | null>(null);
 
   const [detalle, setDetalle] = useState<ClienteDetalle | null>(null);
+  const [ocultarMontos, setOcultarMontos] = useState(false);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [errorDetalle, setErrorDetalle] = useState<string | null>(null);
 
@@ -628,10 +637,12 @@ export default function AdminClientesPage() {
     setErrorDetalle(null);
     setDetalle(null);
     try {
-      const { cliente } = await pedirJson<{ cliente: ClienteDetalle }>(
-        `/api/admin/clientes/${clienteId}`,
-      );
+      const { cliente, ocultarMontos: flagOcultar } = await pedirJson<{
+        cliente: ClienteDetalle;
+        ocultarMontos?: boolean;
+      }>(`/api/admin/clientes/${clienteId}`);
       setDetalle(cliente);
+      setOcultarMontos(Boolean(flagOcultar));
     } catch (error) {
       setErrorDetalle(manejarError(error, "No se pudo cargar la ficha del cliente."));
     } finally {
@@ -655,6 +666,7 @@ export default function AdminClientesPage() {
           detalle ? (
             <DetalleCliente
               cliente={detalle}
+              ocultarMontos={ocultarMontos}
               onVolver={volverALista}
               onAbrirChat={(c) => setChatCliente(c)}
             />

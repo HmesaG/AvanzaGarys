@@ -4,7 +4,7 @@
 // puedan reusarlas cuando se migre el frontend, y para que la regla de las dos
 // bandejas quede documentada en un solo lugar.
 import { db } from "./prisma";
-import { EstadoPago } from "../generated/prisma/client";
+import { EstadoCita, EstadoPago } from "../generated/prisma/client";
 import type { EstadoPlanGrow, LineaAsesoria } from "../generated/prisma/client";
 
 function inicioDelDia(fecha = new Date()): Date {
@@ -22,26 +22,58 @@ export type StatsDashboard = {
   evaluacionesPendientes: number;
   citasHoy: number;
   ingresosMes: number;
+  sesionesCompletadasMes: number;
 };
 
-export async function statsDashboard(): Promise<StatsDashboard> {
+export async function statsDashboard(coachId?: string): Promise<StatsDashboard> {
   const hoy = inicioDelDia();
   const manana = sumarDias(hoy, 1);
   const inicioDeMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
   const inicioMesSiguiente = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
 
-  const [clientesActivos, evaluacionesPendientes, citasHoy, ingresos] = await Promise.all([
-    db.cliente.count({ where: { usuario: { activo: true } } }),
-    db.evaluacion.count({ where: { revisadaPorId: null } }),
-    db.cita.count({ where: { fecha: { gte: hoy, lt: manana } } }),
-    db.pago.aggregate({
-      _sum: { monto: true },
-      where: {
-        estado: EstadoPago.PAGADO,
-        fechaPago: { gte: inicioDeMes, lt: inicioMesSiguiente },
-      },
-    }),
-  ]);
+  if (coachId) {
+    const [clientesActivos, evaluacionesPendientes, citasHoy, sesionesCompletadasMes] =
+      await Promise.all([
+        db.cliente.count({ where: { coachId, usuario: { activo: true } } }),
+        db.evaluacion.count({ where: { revisadaPorId: null } }),
+        db.cita.count({ where: { coachId, fecha: { gte: hoy, lt: manana } } }),
+        db.cita.count({
+          where: {
+            coachId,
+            estado: EstadoCita.COMPLETADA,
+            fecha: { gte: inicioDeMes, lt: inicioMesSiguiente },
+          },
+        }),
+      ]);
+
+    return {
+      clientesActivos,
+      evaluacionesPendientes,
+      citasHoy,
+      ingresosMes: 0,
+      sesionesCompletadasMes,
+    };
+  }
+
+  const [clientesActivos, evaluacionesPendientes, citasHoy, ingresos, sesionesCompletadasMes] =
+    await Promise.all([
+      db.cliente.count({ where: { usuario: { activo: true } } }),
+      db.evaluacion.count({ where: { revisadaPorId: null } }),
+      db.cita.count({ where: { fecha: { gte: hoy, lt: manana } } }),
+      db.pago.aggregate({
+        _sum: { monto: true },
+        where: {
+          estado: EstadoPago.PAGADO,
+          fechaPago: { gte: inicioDeMes, lt: inicioMesSiguiente },
+        },
+      }),
+      db.cita.count({
+        where: {
+          estado: EstadoCita.COMPLETADA,
+          fecha: { gte: inicioDeMes, lt: inicioMesSiguiente },
+        },
+      }),
+    ]);
 
   return {
     clientesActivos,
@@ -49,6 +81,7 @@ export async function statsDashboard(): Promise<StatsDashboard> {
     citasHoy,
     // El agregado devuelve Decimal; se serializa a number para el JSON.
     ingresosMes: Number(ingresos._sum.monto ?? 0),
+    sesionesCompletadasMes,
   };
 }
 

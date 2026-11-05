@@ -68,6 +68,13 @@ enum EstadoCompromiso {
   NO_CUMPLIDO
 }
 
+enum EsquemaHonorario {
+  SIN_DEFINIR
+  PORCENTAJE
+  FIJO_POR_SESION
+  FIJO_MENSUAL
+}
+
 model Usuario {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -75,6 +82,9 @@ model Usuario {
   nombre       String
   rol          Rol
   activo       Boolean  @default(true)
+  esquemaHonorario   EsquemaHonorario @default(SIN_DEFINIR)
+  valorHonorario     Decimal?         @db.Decimal(10, 2)
+  disponibilidadJson Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

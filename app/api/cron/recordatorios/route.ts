@@ -3,7 +3,15 @@ import { db } from "@/lib/prisma";
 import { enviarEmail } from "@/lib/email";
 import { EstadoCompromiso, EstadoCita } from "@/generated/prisma/client";
 
-export async function POST() {
+async function ejecutarRecordatorios(request: Request) {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  if (cronSecret) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+  }
+
   try {
     const ahora = new Date();
     const en48Horas = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
@@ -136,4 +144,12 @@ export async function POST() {
       { status: 500 },
     );
   }
+}
+
+export async function POST(request: Request) {
+  return ejecutarRecordatorios(request);
+}
+
+export async function GET(request: Request) {
+  return ejecutarRecordatorios(request);
 }

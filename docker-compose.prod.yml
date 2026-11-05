@@ -87,21 +87,15 @@ services:
     container_name: avanza-app-prod
     restart: always
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: "0.0.0.0"
       DATABASE_URL: "mysql://${DB_USER:-avanza_app}:${DB_PASSWORD}@mariadb:3306/${DB_NAME:-avanza_prod}"
-      REDIS_URL: >
-        sh -c '
-          if [ -n "${REDIS_PASSWORD}" ]; then
-            echo "redis://:${REDIS_PASSWORD}@redis:6379"
-          else
-            echo "redis://redis:6379"
-          fi
-        '
+      REDIS_URL: "redis://:${REDIS_PASSWORD:?Error: REDIS_PASSWORD es obligatoria en produccion}@redis:6379"
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://avanza.example.com}
+      CRON_SECRET: ${CRON_SECRET:-}
       # Integraciones de Notificaciones e IA
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-AvanzA Coaching <notificaciones@avanza.dev>}

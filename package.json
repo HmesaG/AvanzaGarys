@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "node ./node_modules/prisma/build/index.js generate",
     "dev": "next dev -H 0.0.0.0 -p 3005",
-    "build": "next build",
-    "start": "next start -p 3005",
+    "build": "node ./node_modules/prisma/build/index.js generate && next build",
+    "start": "node server.js",
+    "db:push": "node ./node_modules/prisma/build/index.js db push",
+    "db:seed:prod": "node scripts/seed-production.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-e2e.mjs"

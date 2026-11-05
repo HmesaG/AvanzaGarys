@@ -25,6 +25,9 @@ RUN node ./node_modules/prisma/build/index.js generate
 # Variables para optimizar la compilación de Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NEXT_STANDALONE=1
+ENV DATABASE_URL="mysql://build:build@localhost:3306/build"
+ENV REDIS_URL="memory"
 
 RUN npm run build
 
@@ -46,6 +49,7 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 

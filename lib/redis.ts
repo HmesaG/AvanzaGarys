@@ -1,27 +1,129 @@
-// Singleton de ioredis. Mismo patrón que `lib/prisma.ts`: en desarrollo el
-// hot-reload de Next re-evalúa los módulos y sin el singleton se abriría una
-// conexión nueva por recarga hasta agotar el pool de Redis.
-//
-// Sin degradación silenciosa: si Redis está caído los errores se propagan
-// (ADR 007, decisión 4 — mejor fallar visible que servir datos obsoletos).
+// Singleton de Redis con soporte dual:
+// 1. ioredis (cuando REDIS_URL apunta a un servidor Redis real, ej. Docker / VPS).
+// 2. Almacén en memoria con TTL en globalThis (cuando REDIS_URL="memory" o no está
+//    definida, ej. Hostinger Web/Cloud Hosting hPanel o fase de compilación `next build`).
 import Redis from "ioredis";
 
-const globalForRedis = globalThis as unknown as {
-  redis: Redis | undefined;
+export interface ClienteRedisCompatible {
+  get(key: string): Promise<string | null>;
+  set(
+    key: string,
+    value: string,
+    mode?: "EX",
+    durationSeconds?: number,
+  ): Promise<"OK" | null>;
+  del(...keys: string[]): Promise<number>;
+  eval(
+    script: string,
+    numKeys: number,
+    key: string,
+    ventanaSegundos: number | string,
+  ): Promise<[number, number]>;
+  ping(): Promise<string>;
+}
+
+type EntradaMemoria = {
+  valor: string;
+  expiraEn: number | null;
 };
 
-function crearCliente(): Redis {
-  const url = process.env.REDIS_URL;
-  if (!url) {
-    throw new Error(
-      "REDIS_URL no está definida. Copiá .env.example a .env (ver docker-compose.yml).",
-    );
+const globalForRedis = globalThis as unknown as {
+  redis: ClienteRedisCompatible | undefined;
+  redisMemoryStore: Map<string, EntradaMemoria> | undefined;
+};
+
+function obtenerStoreMemoria(): Map<string, EntradaMemoria> {
+  if (!globalForRedis.redisMemoryStore) {
+    globalForRedis.redisMemoryStore = new Map<string, EntradaMemoria>();
+  }
+  return globalForRedis.redisMemoryStore;
+}
+
+class RedisEnMemoria implements ClienteRedisCompatible {
+  private get store(): Map<string, EntradaMemoria> {
+    return obtenerStoreMemoria();
+  }
+
+  async get(key: string): Promise<string | null> {
+    const entrada = this.store.get(key);
+    if (!entrada) return null;
+    if (entrada.expiraEn !== null && Date.now() >= entrada.expiraEn) {
+      this.store.delete(key);
+      return null;
+    }
+    return entrada.valor;
+  }
+
+  async set(
+    key: string,
+    value: string,
+    mode?: "EX",
+    durationSeconds?: number,
+  ): Promise<"OK" | null> {
+    const expiraEn =
+      mode === "EX" && durationSeconds
+        ? Date.now() + Number(durationSeconds) * 1000
+        : null;
+    this.store.set(key, { valor: value, expiraEn });
+    return "OK";
+  }
+
+  async del(...keys: string[]): Promise<number> {
+    let eliminadas = 0;
+    for (const key of keys) {
+      if (this.store.delete(key)) {
+        eliminadas += 1;
+      }
+    }
+    return eliminadas;
+  }
+
+  async eval(
+    _script: string,
+    _numKeys: number,
+    key: string,
+    ventanaSegundos: number | string,
+  ): Promise<[number, number]> {
+    const ahora = Date.now();
+    const ventanaMs = Number(ventanaSegundos) * 1000;
+    const actual = this.store.get(key);
+
+    let conteo: number;
+    let expiraEn: number;
+
+    if (!actual || (actual.expiraEn !== null && ahora >= actual.expiraEn)) {
+      conteo = 1;
+      expiraEn = ahora + ventanaMs;
+    } else {
+      conteo = (Number(actual.valor) || 0) + 1;
+      expiraEn = actual.expiraEn ?? ahora + ventanaMs;
+    }
+
+    this.store.set(key, { valor: String(conteo), expiraEn });
+    const ttl = Math.max(1, Math.ceil((expiraEn - ahora) / 1000));
+    return [conteo, ttl];
+  }
+
+  async ping(): Promise<string> {
+    return "PONG";
+  }
+}
+
+function crearCliente(): ClienteRedisCompatible {
+  const url = process.env.REDIS_URL?.trim();
+
+  if (
+    !url ||
+    url === "memory" ||
+    process.env.NEXT_PHASE === "phase-production-build"
+  ) {
+    return new RedisEnMemoria();
   }
 
   const cliente = new Redis(url, {
-    // No reintentar indefinidamente: preferimos un error rápido y visible.
     maxRetriesPerRequest: 2,
     connectTimeout: 5000,
+    lazyConnect: true,
   });
 
   // ioredis emite 'error' de forma asíncrona; sin listener Node tumba el proceso.
@@ -29,11 +131,11 @@ function crearCliente(): Redis {
     console.error("[redis] error de conexión:", error.message);
   });
 
-  return cliente;
+  return cliente as unknown as ClienteRedisCompatible;
 }
 
-export const redis = globalForRedis.redis ?? crearCliente();
+export const redis: ClienteRedisCompatible =
+  globalForRedis.redis ?? crearCliente();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForRedis.redis = redis;
-}
+globalForRedis.redis = redis;
+

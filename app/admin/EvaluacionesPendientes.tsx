@@ -51,7 +51,7 @@ export default function EvaluacionesPendientes() {
     const result = await erpAlert.fire({
       icon: "question",
       title: `¿Aprobar evaluación de ${evaluacion.cliente.usuario.nombre}?`,
-      text: "Se le va a crear un programa y un pago pendiente.",
+      text: "Se autorizará la solicitud del paciente, quedando asignado a tu cartera y habilitando su proceso de pago con la administración.",
       showCancelButton: true,
       confirmButtonText: "Aprobar",
       cancelButtonText: "Cancelar",

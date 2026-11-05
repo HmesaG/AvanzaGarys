@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const busqueda = params.get("q")?.trim();
 
     const clientes = await listarClientes({
-      coachId: soloMios ? usuario.id : undefined,
+      coachId: usuario.rol === Rol.COACH || soloMios ? usuario.id : undefined,
       linea: lineaParam ? lineaValida(lineaParam) : undefined,
       busqueda: busqueda || undefined,
     });

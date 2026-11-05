@@ -4,4 +4,9 @@ node_modules
 .claude
 *.tsbuildinfo
 npm-debug.log*
+.env
+.env.production
 .env*.local
+.playwright
+.playwright-cli
+

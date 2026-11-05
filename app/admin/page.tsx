@@ -36,6 +36,8 @@ const MAX_PROXIMAS_CITAS = 5;
 
 export default async function AdminDashboardPage() {
   const usuario = await requireSesionPagina(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
+  const esCoachExterno = usuario.rol === Rol.COACH;
+  const coachScopeId = esCoachExterno ? usuario.id : undefined;
 
   const ahora = new Date();
   const desde = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
@@ -43,10 +45,10 @@ export default async function AdminDashboardPage() {
   hasta.setDate(hasta.getDate() + DIAS_PROXIMAS_CITAS);
 
   const [stats, citasDelRango, alertas, metricasGraficos] = await Promise.all([
-    statsDashboard(),
-    listarCitas({ desde, hasta }),
-    obtenerAlertasSistema(usuario.rol === Rol.COACH ? usuario.id : undefined),
-    obtenerMetricasGraficos(),
+    statsDashboard(coachScopeId),
+    listarCitas({ desde, hasta, coachId: coachScopeId }),
+    obtenerAlertasSistema(coachScopeId),
+    esCoachExterno ? Promise.resolve(null) : obtenerMetricasGraficos(),
   ]);
 
   // Una cita cancelada no es una "próxima cita"; el resto sí se muestra.
@@ -56,7 +58,7 @@ export default async function AdminDashboardPage() {
 
   const tarjetas = [
     {
-      label: "Clientes activos",
+      label: esCoachExterno ? "Mis pacientes activos" : "Clientes activos",
       value: stats.clientesActivos.toString(),
       icon: Users,
       color: "text-avanza-green",
@@ -70,19 +72,27 @@ export default async function AdminDashboardPage() {
       bg: "bg-avanza-blue-light",
     },
     {
-      label: "Pendientes",
+      label: "Solicitudes pendientes",
       value: stats.evaluacionesPendientes.toString(),
       icon: Clock,
       color: "text-avanza-orange",
       bg: "bg-avanza-orange-light",
     },
-    {
-      label: "Ingresos (mes)",
-      value: formatIngresos(stats.ingresosMes),
-      icon: DollarSign,
-      color: "text-avanza-green",
-      bg: "bg-avanza-green-light",
-    },
+    esCoachExterno
+      ? {
+          label: "Sesiones hechas (mes)",
+          value: stats.sesionesCompletadasMes.toString(),
+          icon: Calendar,
+          color: "text-avanza-green",
+          bg: "bg-avanza-green-light",
+        }
+      : {
+          label: "Ingresos (mes)",
+          value: formatIngresos(stats.ingresosMes),
+          icon: DollarSign,
+          color: "text-avanza-green",
+          bg: "bg-avanza-green-light",
+        },
   ];
 
   return (
@@ -118,7 +128,7 @@ export default async function AdminDashboardPage() {
           ))}
         </section>
 
-        <AdminAnalyticsChart data={metricasGraficos} />
+        {!esCoachExterno && metricasGraficos && <AdminAnalyticsChart data={metricasGraficos} />}
 
         {alertas.total > 0 && (
           <section aria-label="Alertas del sistema" className="mb-6">
@@ -170,14 +180,16 @@ export default async function AdminDashboardPage() {
             <Download className="h-3.5 w-3.5 text-avanza-green dark:text-emerald-400" />
             <span>Coaching Log ICF</span>
           </a>
-          <a
-            href="/api/admin/pagos/exportar"
-            download
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white py-2.5 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-750"
-          >
-            <Download className="h-3.5 w-3.5 text-avanza-orange" />
-            <span>Reporte Pagos (CSV)</span>
-          </a>
+          {!esCoachExterno && (
+            <a
+              href="/api/admin/pagos/exportar"
+              download
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-white py-2.5 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-2xs dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-750"
+            >
+              <Download className="h-3.5 w-3.5 text-avanza-orange" />
+              <span>Reporte Pagos (CSV)</span>
+            </a>
+          )}
         </div>
 
         <EvaluacionesPendientes />

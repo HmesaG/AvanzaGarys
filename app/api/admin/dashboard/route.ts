@@ -5,8 +5,10 @@ import { Rol } from "@/generated/prisma/client";
 
 export async function GET() {
   try {
-    await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
-    return jsonOk({ stats: await statsDashboard() });
+    const usuario = await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
+    return jsonOk({
+      stats: await statsDashboard(usuario.rol === Rol.COACH ? usuario.id : undefined),
+    });
   } catch (error) {
     return manejarError(error);
   }

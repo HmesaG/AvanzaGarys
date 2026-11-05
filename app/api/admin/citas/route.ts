@@ -37,7 +37,10 @@ export async function GET(request: NextRequest) {
       desde,
       hasta,
       clienteId: params.get("clienteId") ?? undefined,
-      coachId: params.get("mias") === "1" ? usuario.id : undefined,
+      coachId:
+        usuario.rol === Rol.COACH || params.get("mias") === "1"
+          ? usuario.id
+          : undefined,
     });
 
     return jsonOk({ citas, rango: { desde, hasta } });
@@ -73,10 +76,17 @@ export async function POST(request: NextRequest) {
       throw new ApiError(404, "El cliente no existe", "no_encontrado");
     }
 
-    // Un COACH sólo se agenda a sí mismo; ADMINISTRADOR y SECRETARIA pueden
-    // agendar a cualquier miembro del staff.
+    // Un COACH sólo se agenda a sí mismo y únicamente con pacientes de su cartera;
+    // ADMINISTRADOR y SECRETARIA pueden agendar a cualquier miembro del staff.
     let coachId: string | null;
     if (usuario.rol === Rol.COACH) {
+      if (cliente.coachId !== usuario.id) {
+        throw new ApiError(
+          403,
+          "Solo puedes agendar citas para pacientes de tu propia cartera",
+          "sin_permiso",
+        );
+      }
       coachId = usuario.id;
     } else {
       const solicitado = textoOpcional(cuerpo.coachId, "coachId", { max: 40 });
