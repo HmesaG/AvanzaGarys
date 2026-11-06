@@ -263,6 +263,16 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO `usuarios` (`id`, `email`, `passwordHash`, `nombre`, `rol`, `activo`, `createdAt`, `updatedAt`)
 VALUES
 (
+    'cm0owner00000000000000000',
+    'garyspaniagua10@gmail.com',
+    '$2b$10$vrn9.G3urM56K8DeRhrvmO2H0efzkxThJiuysUH20Zu5mI.1OJBEW',
+    'Gary Paniagua (Dueño)',
+    'ADMINISTRADOR',
+    true,
+    NOW(3),
+    NOW(3)
+),
+(
     'cm0owner00000000000000001',
     'garyspanigua10@gmail.com',
     '$2b$10$vrn9.G3urM56K8DeRhrvmO2H0efzkxThJiuysUH20Zu5mI.1OJBEW',

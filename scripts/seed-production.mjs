@@ -17,7 +17,7 @@ const adapter = new PrismaMariaDb(dbUrl);
 const db = new PrismaClient({ adapter });
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || "garyspanigua10@gmail.com";
+  const email = process.env.ADMIN_EMAIL || "garyspaniagua10@gmail.com";
   const password = process.env.ADMIN_PASSWORD;
 
   if (!password) {
