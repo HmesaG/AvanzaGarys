@@ -253,14 +253,36 @@ CREATE TABLE IF NOT EXISTS `mensajes` (
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
--- Semilla de Usuario Administrador Inicial para Producción
--- Credenciales iniciales:
---   Email:      admin@avanza.do
---   Contraseña: Admin123!
--- IMPORTANTE: Cambiar la contraseña inmediatamente tras el primer inicio de sesión.
+-- Semilla de Usuarios Administradores Iniciales para Producción
+-- Credenciales iniciales (Contraseña temporal para todos: Admin123!):
+--   1. Dueño Principal: garyspanigua10@gmail.com
+--   2. Administrador:   hmesag@gmail.com
+--   3. Respaldo:        admin@avanza.do
+-- IMPORTANTE: Cambiar las contraseñas inmediatamente tras el primer inicio de sesión.
 -- ============================================================================
 INSERT INTO `usuarios` (`id`, `email`, `passwordHash`, `nombre`, `rol`, `activo`, `createdAt`, `updatedAt`)
-VALUES (
+VALUES
+(
+    'cm0owner00000000000000001',
+    'garyspanigua10@gmail.com',
+    '$2b$10$vrn9.G3urM56K8DeRhrvmO2H0efzkxThJiuysUH20Zu5mI.1OJBEW',
+    'Gary Paniagua (Dueño)',
+    'ADMINISTRADOR',
+    true,
+    NOW(3),
+    NOW(3)
+),
+(
+    'cm0hector0000000000000002',
+    'hmesag@gmail.com',
+    '$2b$10$vrn9.G3urM56K8DeRhrvmO2H0efzkxThJiuysUH20Zu5mI.1OJBEW',
+    'Héctor Mesa (Admin)',
+    'ADMINISTRADOR',
+    true,
+    NOW(3),
+    NOW(3)
+),
+(
     'cm0admin00000000000000001',
     'admin@avanza.do',
     '$2b$10$vrn9.G3urM56K8DeRhrvmO2H0efzkxThJiuysUH20Zu5mI.1OJBEW',

@@ -40,3 +40,6 @@ CLAUDE.md
 # playwright-cli
 .playwright/
 .playwright-cli/
+
+# local launch video artifacts
+/brag-output/
