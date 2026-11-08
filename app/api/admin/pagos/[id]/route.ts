@@ -64,3 +64,4 @@ export async function PATCH(
     return manejarError(error);
   }
 }
+
