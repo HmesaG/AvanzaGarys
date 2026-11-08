@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Rocket, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { Rocket, ChevronLeft, ChevronRight, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
@@ -142,7 +142,7 @@ export default function AdminPlanesGrowPage() {
   return (
     <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Planes GROW" />
-      <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
+      <main className="mx-auto min-h-dvh max-w-md lg:max-w-5xl px-5 pb-28 pt-6">
         {detalle || cargandoDetalle ? (
           <>
             <button
@@ -237,7 +237,10 @@ export default function AdminPlanesGrowPage() {
                               </ul>
                               {feedback && (
                                 <div className="mt-2 rounded-xl bg-emerald-50/70 p-2.5 text-xs text-emerald-950 border border-emerald-100">
-                                  <span className="font-semibold text-avanza-green-dark">💡 Análisis IA: </span>
+                                  <span className="inline-flex items-center gap-1 font-semibold text-avanza-green-dark mr-1">
+                                    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                    Análisis IA:
+                                  </span>
                                   <span>{feedback.reflexion}</span>
                                 </div>
                               )}

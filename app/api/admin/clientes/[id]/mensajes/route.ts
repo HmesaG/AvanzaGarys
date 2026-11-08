@@ -26,9 +26,13 @@ export async function GET(
       throw new ApiError(404, "Cliente no encontrado", "no_encontrado");
     }
 
-    // Si es coach, verificar que tenga asignado el cliente (o rol administrativo)
+    // Si es coach externo, verificar que tenga asignado el cliente en su cartera (anti-IDOR)
     if (usuario.rol === Rol.COACH && cliente.coachId !== usuario.id) {
-      // Permitimos ver si es staff pero marcamos la regla si corresponde
+      throw new ApiError(
+        403,
+        "Solo puedes acceder a los mensajes de pacientes de tu propia cartera",
+        "sin_permiso",
+      );
     }
 
     const url = new URL(request.url);
@@ -56,10 +60,18 @@ export async function POST(
 
     const cliente = await db.cliente.findUnique({
       where: { id: clienteId },
-      select: { id: true },
+      select: { id: true, coachId: true },
     });
     if (!cliente) {
       throw new ApiError(404, "Cliente no encontrado", "no_encontrado");
+    }
+
+    if (usuario.rol === Rol.COACH && cliente.coachId !== usuario.id) {
+      throw new ApiError(
+        403,
+        "Solo puedes enviar mensajes a pacientes de tu propia cartera",
+        "sin_permiso",
+      );
     }
 
     const cuerpo = await leerJson(request);

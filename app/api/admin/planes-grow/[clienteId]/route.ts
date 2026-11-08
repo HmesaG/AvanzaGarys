@@ -7,12 +7,20 @@ import { Rol } from "@/generated/prisma/client";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ clienteId: string }> }) {
   try {
-    await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
+    const usuario = await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
     const { clienteId } = await params;
 
     const plan = await obtenerPlanGrowDetalle(clienteId);
     if (!plan) {
       throw new ApiError(404, "Este cliente no tiene un plan de desarrollo", "no_encontrado");
+    }
+
+    if (usuario.rol === Rol.COACH && plan.cliente.coachId !== usuario.id) {
+      throw new ApiError(
+        403,
+        "Solo puedes acceder a los planes GROW de pacientes de tu propia cartera",
+        "sin_permiso",
+      );
     }
 
     return jsonOk({ plan });
@@ -32,13 +40,21 @@ const ESTADOS_ADMIN = ["ACTIVO", "PAUSADO", "CERRADO"] as const;
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ clienteId: string }> }) {
   try {
     verificarOrigen(request);
-    await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
+    const usuario = await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
     const { clienteId } = await params;
     const cuerpo = await leerJson(request);
 
     const plan = await obtenerPlanGrowDetalle(clienteId);
     if (!plan) {
       throw new ApiError(404, "Este cliente no tiene un plan de desarrollo", "no_encontrado");
+    }
+
+    if (usuario.rol === Rol.COACH && plan.cliente.coachId !== usuario.id) {
+      throw new ApiError(
+        403,
+        "Solo puedes modificar los planes GROW de pacientes de tu propia cartera",
+        "sin_permiso",
+      );
     }
 
     if (cuerpo.sesionId !== undefined) {

@@ -303,8 +303,9 @@ export async function obtenerEmpresaDetalle(empresaId: string) {
 
 // --- Planes GROW (Fase 4b, prototipo sin IA) --------------------------------
 
-export async function listarPlanesGrow() {
+export async function listarPlanesGrow(coachId?: string) {
   return db.planGrow.findMany({
+    where: coachId ? { cliente: { coachId } } : undefined,
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,
@@ -313,7 +314,13 @@ export async function listarPlanesGrow() {
       totalSemanas: true,
       estado: true,
       updatedAt: true,
-      cliente: { select: { id: true, usuario: { select: { nombre: true, email: true } } } },
+      cliente: {
+        select: {
+          id: true,
+          coachId: true,
+          usuario: { select: { nombre: true, email: true } },
+        },
+      },
     },
   });
 }
@@ -328,7 +335,13 @@ export async function obtenerPlanGrowDetalle(clienteId: string) {
       semanaActual: true,
       totalSemanas: true,
       estado: true,
-      cliente: { select: { id: true, usuario: { select: { nombre: true, email: true } } } },
+      cliente: {
+        select: {
+          id: true,
+          coachId: true,
+          usuario: { select: { nombre: true, email: true } },
+        },
+      },
       sesiones: {
         orderBy: { semana: "asc" },
         select: {

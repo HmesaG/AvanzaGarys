@@ -25,11 +25,13 @@ import {
   Trophy,
   MessageCircle,
   Receipt,
+  CheckCircle2,
 } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import PageTransition from "@/components/PageTransition";
 import AdminChatModal from "@/components/AdminChatModal";
+import { erpToast, errorToast } from "@/lib/alerts";
 import { ErrorApi, pedirJson } from "@/lib/api-navegador";
 import {
   ESTADO_CITA_BADGE,
@@ -193,11 +195,13 @@ function DetalleCliente({
   ocultarMontos = false,
   onVolver,
   onAbrirChat,
+  onConfirmarPago,
 }: {
   cliente: ClienteDetalle;
   ocultarMontos?: boolean;
   onVolver: () => void;
   onAbrirChat: (c: { id: string; nombre: string; linea: string }) => void;
+  onConfirmarPago?: (pagoId: string) => void;
 }) {
   const ahora = Date.now();
   // La API devuelve las citas de la más nueva a la más vieja; las próximas se
@@ -512,17 +516,29 @@ function DetalleCliente({
                       ? "Gestión de cobro administrada por el centro"
                       : `${pago.concepto ?? "Sin concepto"}${pago.metodo ? ` · ${pago.metodo}` : ""}${pago.fechaPago ? ` · ${formatFechaCorta(pago.fechaPago)}` : ""}`}
                   </p>
-                  {!ocultarMontos && pago.comprobanteUrl && (
-                    <div className="mt-1.5">
-                      <a
-                        href={pago.comprobanteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors dark:bg-emerald-950/40 dark:text-emerald-300 dark:border dark:border-emerald-800/40"
-                      >
-                        <Receipt className="h-3 w-3" />
-                        <span>Ver Comprobante / Voucher</span>
-                      </a>
+                  {!ocultarMontos && (pago.comprobanteUrl || pago.estado !== "PAGADO") && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {pago.comprobanteUrl && (
+                        <a
+                          href={pago.comprobanteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors dark:bg-emerald-950/40 dark:text-emerald-300 dark:border dark:border-emerald-800/40"
+                        >
+                          <Receipt className="h-3 w-3" />
+                          <span>Ver Comprobante / Voucher</span>
+                        </a>
+                      )}
+                      {pago.estado !== "PAGADO" && onConfirmarPago && (
+                        <button
+                          type="button"
+                          onClick={() => onConfirmarPago(pago.id)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-avanza-green px-2.5 py-1 text-[11px] font-semibold text-white shadow-2xs hover:bg-avanza-green/90 active:scale-95 transition-all"
+                        >
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Confirmar Pago</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -650,6 +666,21 @@ export default function AdminClientesPage() {
     }
   }
 
+  async function handleConfirmarPago(pagoId: string) {
+    if (!detalle) return;
+    try {
+      await pedirJson(`/api/admin/pagos/${pagoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "PAGADO" }),
+      });
+      erpToast.fire({ icon: "success", title: "Pago validado y confirmado" });
+      await abrirDetalle(detalle.id);
+    } catch (error) {
+      errorToast(error instanceof ErrorApi ? error.message : "No se pudo confirmar el pago");
+    }
+  }
+
   function volverALista() {
     setDetalle(null);
     setErrorDetalle(null);
@@ -669,6 +700,7 @@ export default function AdminClientesPage() {
               ocultarMontos={ocultarMontos}
               onVolver={volverALista}
               onAbrirChat={(c) => setChatCliente(c)}
+              onConfirmarPago={handleConfirmarPago}
             />
           ) : (
             <>

@@ -123,28 +123,54 @@ export async function obtenerAlertasSistema(coachId?: string): Promise<ResumenAl
     }
   }
 
-  // 4. Pagos pendientes de más de 3 días
-  const pagosViejos = await db.pago.findMany({
-    where: {
-      estado: EstadoPago.PENDIENTE,
-      createdAt: { lte: hace3Dias },
-      ...(coachId ? { cliente: { coachId } } : {}),
-    },
-    include: { cliente: { include: { usuario: true } } },
-  });
+  // 4. Pagos pendientes o vouchers en revisión (exclusivo Administración / Secretaría)
+  if (!coachId) {
+    const [vouchersEnRevision, pagosViejos] = await Promise.all([
+      db.pago.findMany({
+        where: {
+          estado: EstadoPago.PENDIENTE,
+          comprobanteUrl: { not: null },
+        },
+        include: { cliente: { include: { usuario: true } } },
+        orderBy: { updatedAt: "desc" },
+      }),
+      db.pago.findMany({
+        where: {
+          estado: EstadoPago.PENDIENTE,
+          comprobanteUrl: null,
+          createdAt: { lte: hace3Dias },
+        },
+        include: { cliente: { include: { usuario: true } } },
+      }),
+    ]);
 
-  for (const p of pagosViejos) {
-    items.push({
-      id: `pago-${p.id}`,
-      tipo: "PAGO_PENDIENTE",
-      titulo: "Pago pendiente de regularizar",
-      descripcion: `${p.cliente.usuario.nombre} tiene un pago pendiente por RD$ ${p.monto}.`,
-      severidad: "informativa",
-      enlace: `/admin/clientes`,
-      clienteId: p.clienteId,
-      clienteNombre: p.cliente.usuario.nombre,
-      fechaReferencia: p.createdAt.toISOString(),
-    });
+    for (const p of vouchersEnRevision) {
+      items.push({
+        id: `voucher-${p.id}`,
+        tipo: "PAGO_PENDIENTE",
+        titulo: "Comprobante de pago pendiente de validar",
+        descripcion: `${p.cliente.usuario.nombre} adjuntó un voucher de transferencia por RD$ ${p.monto}.`,
+        severidad: "atencion",
+        enlace: `/admin/clientes`,
+        clienteId: p.clienteId,
+        clienteNombre: p.cliente.usuario.nombre,
+        fechaReferencia: p.updatedAt.toISOString(),
+      });
+    }
+
+    for (const p of pagosViejos) {
+      items.push({
+        id: `pago-${p.id}`,
+        tipo: "PAGO_PENDIENTE",
+        titulo: "Pago pendiente de regularizar",
+        descripcion: `${p.cliente.usuario.nombre} tiene un pago pendiente por RD$ ${p.monto}.`,
+        severidad: "informativa",
+        enlace: `/admin/clientes`,
+        clienteId: p.clienteId,
+        clienteNombre: p.cliente.usuario.nombre,
+        fechaReferencia: p.createdAt.toISOString(),
+      });
+    }
   }
 
   const urgentes = items.filter((i) => i.severidad === "urgente").length;

@@ -126,7 +126,7 @@ export default function AdminEmpresasPage() {
   return (
     <PageTransition footer={<AdminBottomNav />}>
       <AdminHeader title="Empresas" />
-      <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
+      <main className="mx-auto min-h-dvh max-w-md lg:max-w-5xl px-5 pb-28 pt-6">
         {detalle || cargandoDetalle ? (
           <>
             <button

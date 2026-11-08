@@ -42,6 +42,7 @@ export async function GET() {
     const inicioMesSiguiente = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1);
 
     const esCoachExterno = usuario.rol === Rol.COACH;
+    const esAdmin = usuario.rol === Rol.ADMINISTRADOR;
 
     const [coachesDb, sinAsignarDb] = await Promise.all([
       db.usuario.findMany({
@@ -163,9 +164,9 @@ export async function GET() {
         citasCompletadas,
         citasCompletadasMes,
         citasPendientes,
-        // El miembro externo nunca ve la recaudación bruta del dueño
-        recaudadoMes: esCoachExterno ? 0 : recaudadoMes,
-        liquidacionEstimadaMes: esCoachExterno ? null : liquidacionEstimadaMes,
+        // Solo el Dueño (ADMINISTRADOR) ve la recaudación bruta y liquidación estimada
+        recaudadoMes: esAdmin ? recaudadoMes : 0,
+        liquidacionEstimadaMes: esAdmin ? liquidacionEstimadaMes : null,
         clientes: coach.clientesAsignados.map((c) => ({
           id: c.id,
           linea: c.linea,

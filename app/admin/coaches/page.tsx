@@ -410,7 +410,7 @@ export default function CoachesAdminPage() {
                           )}
                         </div>
 
-                        {rolActual !== "COACH" && (
+                        {esAdmin && (
                           <div className="mt-2.5 grid grid-cols-2 gap-2 border-t border-gray-200/70 pt-2 text-[11px] text-gray-600 dark:border-gray-700 dark:text-gray-400">
                             <div>
                               <span className="block text-gray-400">Recaudado por el centro (mes)</span>

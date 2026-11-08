@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent, useMemo } from "react";
 import {
   PhoneCall,
+  Phone,
   Calendar,
   UserPlus,
   Users,
@@ -404,8 +405,9 @@ export default function AdminSecretariaPage() {
                     </p>
                     <p className="text-[11px] text-gray-500 truncate">{cliente.usuario.email}</p>
                     {cliente.telefono && (
-                      <p className="text-[11px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
-                        📞 {cliente.telefono}
+                      <p className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
+                        <Phone className="h-3 w-3 shrink-0 text-avanza-green" aria-hidden="true" />
+                        <span>{cliente.telefono}</span>
                       </p>
                     )}
                     <div className="mt-1 flex items-center justify-between text-[10px]">

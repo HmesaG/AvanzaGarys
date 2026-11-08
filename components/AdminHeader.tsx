@@ -70,36 +70,41 @@ export default function AdminHeader({ title }: { title: string }) {
   }
 
   return (
-    <header className="bg-avanza-green px-5 pb-6 pt-8 safe-top">
-      <div className="mx-auto flex max-w-md items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.push("/admin/mas")}
-          aria-label="Abrir menú"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors duration-150 hover:bg-white/10 active:scale-95"
-        >
-          <Menu className="h-5 w-5" aria-hidden="true" />
-        </button>
-
-        <h1 className="text-lg font-bold text-white">{title}</h1>
-
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
+    <>
+      <header className="bg-avanza-green px-5 pb-6 pt-8 safe-top lg:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between">
           <button
             type="button"
-            onClick={handleVerNotificaciones}
-            aria-label="Ver notificaciones"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors duration-150 hover:bg-white/10 active:scale-95"
+            onClick={() => router.push("/admin/mas")}
+            aria-label="Abrir menú"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors duration-150 hover:bg-white/10 active:scale-95"
           >
-            <Bell className="h-5 w-5" aria-hidden="true" />
-            {totalAlertas > 0 && (
-              <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-avanza-green">
-                {totalAlertas > 9 ? "9+" : totalAlertas}
-              </span>
-            )}
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
+
+          <h1 className="text-lg font-bold text-white">{title}</h1>
+
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={handleVerNotificaciones}
+              aria-label="Ver notificaciones"
+              className="relative flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors duration-150 hover:bg-white/10 active:scale-95"
+            >
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              {totalAlertas > 0 && (
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-avanza-green">
+                  {totalAlertas > 9 ? "9+" : totalAlertas}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
+      </header>
+      <div className="hidden lg:block mx-auto max-w-6xl px-5 pt-6">
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h1>
       </div>
-    </header>
+    </>
   );
 }

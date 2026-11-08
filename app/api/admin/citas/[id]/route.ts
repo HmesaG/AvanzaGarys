@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
+    const usuario = await requireRole(Rol.ADMINISTRADOR, Rol.COACH, Rol.SECRETARIA);
     const { id } = await params;
 
     const cita = await db.cita.findUnique({
@@ -27,6 +27,14 @@ export async function GET(
 
     if (!cita) {
       throw new ApiError(404, "Cita no encontrada", "no_encontrado");
+    }
+
+    if (
+      usuario.rol === Rol.COACH &&
+      cita.coachId !== usuario.id &&
+      cita.cliente.coachId !== usuario.id
+    ) {
+      throw new ApiError(403, "No tienes permiso para ver esta cita", "sin_permiso");
     }
 
     return jsonOk({ cita });
@@ -47,13 +55,17 @@ export async function PATCH(
 
     const citaExistente = await db.cita.findUnique({
       where: { id },
-      select: { id: true, coachId: true },
+      select: { id: true, coachId: true, cliente: { select: { coachId: true } } },
     });
     if (!citaExistente) {
       throw new ApiError(404, "Cita no encontrada", "no_encontrado");
     }
 
-    if (usuario.rol === Rol.COACH && citaExistente.coachId && citaExistente.coachId !== usuario.id) {
+    if (
+      usuario.rol === Rol.COACH &&
+      citaExistente.coachId !== usuario.id &&
+      citaExistente.cliente.coachId !== usuario.id
+    ) {
       throw new ApiError(403, "No tienes permiso para modificar esta cita", "sin_permiso");
     }
 

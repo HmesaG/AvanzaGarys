@@ -2,6 +2,7 @@
 //
 // Genera un documento imprimible estilizado, optimizado para guardar como PDF
 // en cualquier navegador con formato membretado oficial, sin barras de navegación ni ruido.
+import { errorToast } from "./alerts";
 
 export type DatosInformeCliente = {
   nombreCliente: string;
@@ -420,7 +421,7 @@ export function exportarInformeEmpresaPDF(datos: DatosInformeEmpresa) {
 function abrirVentanaImpresion(html: string) {
   const ventana = window.open("", "_blank");
   if (!ventana) {
-    alert("Permite las ventanas emergentes para descargar el informe en PDF.");
+    errorToast("Permite las ventanas emergentes para descargar el informe en PDF.");
     return;
   }
   ventana.document.open();

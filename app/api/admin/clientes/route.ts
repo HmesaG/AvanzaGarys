@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
-import { jsonOk, manejarError } from "@/lib/http";
+import { hashearPassword, requireRole } from "@/lib/auth";
+import { ApiError, jsonOk, leerJson, manejarError, verificarOrigen } from "@/lib/http";
 import { listarClientes } from "@/lib/admin-queries";
-import { lineaValida } from "@/lib/validacion";
+import { db } from "@/lib/prisma";
+import { emailValido, lineaValida, passwordValida, textoOpcional, textoRequerido } from "@/lib/validacion";
 import { Rol } from "@/generated/prisma/client";
 
 /**
@@ -34,13 +35,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    verificarOrigen(request);
     await requireRole(Rol.ADMINISTRADOR, Rol.SECRETARIA);
-    const cuerpo = await request.json();
-
-    const { emailValido, passwordValida, textoRequerido, textoOpcional, lineaValida } = await import("@/lib/validacion");
-    const { hashearPassword } = await import("@/lib/auth");
-    const { db } = await import("@/lib/prisma");
-    const { ApiError } = await import("@/lib/http");
+    const cuerpo = await leerJson(request);
 
     const nombre = textoRequerido(cuerpo.nombre, "nombre", { min: 3, max: 120 });
     const email = emailValido(cuerpo.email);
