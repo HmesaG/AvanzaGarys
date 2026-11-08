@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" width="600" height="220" fill="none">
+  <!-- Concepto 4: Emblema Isometrico 3D Monocromo de 4 Tonos (Craft Anatomy-Asset) -->
+  <g transform="translate(20, 14)" stroke="#0A0A0A" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Sombra base suave en papel -->
+    <polygon points="92,188 18,145 92,102 166,145" fill="#E5E5E5" stroke="none"/>
+    <!-- Plinto base isometrico (4 tonos: top #F5F5F5, left #D4D4D4, right #737373, bottom ink #262626) -->
+    <!-- Cara superior plinto -->
+    <polygon points="92,162 24,122 92,82 160,122" fill="#F5F5F5"/>
+    <!-- Cara izquierda plinto -->
+    <polygon points="24,122 92,162 92,178 24,138" fill="#D4D4D4"/>
+    <!-- Cara derecha plinto -->
+    <polygon points="160,122 92,162 92,178 160,138" fill="#737373"/>
+
+    <!-- Peldaño 1 (G - Goal) -->
+    <polygon points="62,134 38,120 62,106 86,120" fill="#FFFFFF"/>
+    <polygon points="38,120 62,134 62,148 38,134" fill="#D4D4D4"/>
+    <polygon points="86,120 62,134 62,148 86,134" fill="#525252"/>
+
+    <!-- Peldaño 2 (R - Reality) -->
+    <polygon points="82,112 58,98 82,84 106,98" fill="#FFFFFF"/>
+    <polygon points="58,98 82,112 82,138 58,124" fill="#D4D4D4"/>
+    <polygon points="106,98 82,112 82,138 106,124" fill="#525252"/>
+
+    <!-- Peldaño 3 (O - Options) -->
+    <polygon points="102,88 78,74 102,60 126,74" fill="#FFFFFF"/>
+    <polygon points="78,74 102,88 102,126 78,112" fill="#BDBDBD"/>
+    <polygon points="126,74 102,88 102,126 126,112" fill="#404040"/>
+
+    <!-- Monolito Cumbre (W - Will / A-Apex) -->
+    <polygon points="122,58 98,44 122,30 146,44" fill="#0A0A0A"/>
+    <polygon points="98,44 122,58 122,114 98,100" fill="#737373"/>
+    <polygon points="146,44 122,58 122,114 146,100" fill="#262626"/>
+
+    <!-- Estrella / Brujula blanca incrustada en la cumbre -->
+    <line x1="112" y1="44" x2="132" y2="44" stroke="#FFFFFF" stroke-width="2.2"/>
+    <line x1="122" y1="36" x2="122" y2="52" stroke="#FFFFFF" stroke-width="2.2"/>
+
+    <!-- Tornillos de precision en las esquinas del plinto -->
+    <circle cx="92" cy="154" r="2" fill="#0A0A0A"/>
+    <circle cx="36" cy="122" r="2" fill="#0A0A0A"/>
+    <circle cx="148" cy="122" r="2" fill="#0A0A0A"/>
+  </g>
+  <!-- Wordmark Tecnico -->
+  <g transform="translate(216, 54)">
+    <text x="0" y="62" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="68" font-weight="900" letter-spacing="-2.5" fill="#0A0A0A">AVANZA</text>
+    <rect x="2" y="78" width="68" height="6" fill="#0A0A0A"/>
+    <rect x="76" y="78" width="28" height="6" fill="#737373"/>
+    <rect x="110" y="78" width="12" height="6" fill="#D4D4D4"/>
+    <text x="2" y="108" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="13" font-weight="800" letter-spacing="2.4" fill="#262626">ARQUITECTURA DE CRECIMIENTO HUMANO</text>
+  </g>
+</svg>

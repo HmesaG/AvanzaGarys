@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" width="600" height="220" fill="none">
+  <!-- Concepto 1: Monograma Arquitectonico "A" de Ascenso (Monocromo Puro) -->
+  <g transform="translate(24, 22)">
+    <!-- Marco exterior biselado -->
+    <rect x="4" y="4" width="168" height="168" rx="36" fill="#0A0A0A"/>
+    <rect x="10" y="10" width="156" height="156" rx="30" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.18"/>
+    <!-- Pilar izquierdo y vertice de la A -->
+    <path d="M46 138L84 38H98L64 138H46Z" fill="#FFFFFF"/>
+    <!-- Pilar derecho con corte de precision -->
+    <path d="M90 38H104L140 138H120L90 54V38Z" fill="#FFFFFF"/>
+    <!-- Flecha/Travesaño de impulso ascendente -->
+    <path d="M58 106H114L102 90H122L138 112L122 134H102L114 118H54L58 106Z" fill="#FFFFFF"/>
+    <!-- Punto de meta (Goal) en la cumbre -->
+    <circle cx="91" cy="25" r="5" fill="#FFFFFF"/>
+  </g>
+  <!-- Wordmark Monocromo -->
+  <g transform="translate(222, 58)">
+    <text x="0" y="62" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="68" font-weight="900" letter-spacing="-2.5" fill="#0A0A0A">AVANZA</text>
+    <line x1="2" y1="80" x2="340" y2="80" stroke="#0A0A0A" stroke-width="2.5"/>
+    <text x="2" y="104" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="5.5" fill="#262626">COACHING &amp; METODOLOGÍA GROW</text>
+  </g>
+</svg>
+

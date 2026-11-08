@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" width="600" height="220" fill="none">
+  <!-- Concepto 6: Minimalismo Editorial Suizo (Wordmark con Ligadura Ascendente, Cero Color) -->
+  <g transform="translate(36, 42)">
+    <!-- Marca tipografica de autor donde la primera A y la ultima A tienen corte diagonal de impulso -->
+    <rect x="0" y="0" width="528" height="136" rx="20" stroke="#0A0A0A" stroke-width="4" fill="#FFFFFF"/>
+    <rect x="10" y="10" width="116" height="116" rx="14" fill="#0A0A0A"/>
+    <!-- Simbolo minimalista en negativo: Doble Chevron / A -->
+    <path d="M40 96L68 38L96 96" stroke="#FFFFFF" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M52 84L68 54L84 84" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="square"/>
+    <!-- Texto Editorial -->
+    <text x="150" y="82" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="64" font-weight="900" letter-spacing="-2" fill="#0A0A0A">AVANZA</text>
+    <text x="412" y="48" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="14" font-weight="800" fill="#0A0A0A">®</text>
+    <text x="152" y="108" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="12" font-weight="700" letter-spacing="3.2" fill="#404040">PERSONAL · CORPORATIVO · DEPORTIVO</text>
+  </g>
+</svg>
