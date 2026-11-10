@@ -11,6 +11,9 @@ const config: Config = {
     extend: {
       colors: {
         avanza: {
+          purple: "#6a1b9a",
+          "purple-dark": "#4a148c",
+          "purple-light": "#f3e5f5",
           green: "#2e7d32",
           "green-dark": "#1b5e20",
           "green-light": "#e8f5e9",

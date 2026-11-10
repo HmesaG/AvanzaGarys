@@ -74,7 +74,7 @@ export function lineaValida(valor: unknown, campo = "linea"): LineaAsesoria {
   }
   throw new ApiError(
     400,
-    "Línea de asesoría inválida (personal, corporativo o deportivo)",
+    "Línea de asesoría inválida (psicologia_clinica, personal, corporativo o deportivo)",
     "campo_invalido",
   );
 }

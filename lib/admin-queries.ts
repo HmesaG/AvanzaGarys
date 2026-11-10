@@ -130,13 +130,13 @@ export async function listarClientes(filtro: FiltroClientes = {}) {
       ...(filtro.linea ? { linea: filtro.linea } : {}),
       ...(filtro.busqueda
         ? {
-            usuario: {
-              OR: [
-                { nombre: { contains: filtro.busqueda } },
-                { email: { contains: filtro.busqueda } },
-              ],
-            },
-          }
+          usuario: {
+            OR: [
+              { nombre: { contains: filtro.busqueda } },
+              { email: { contains: filtro.busqueda } },
+            ],
+          },
+        }
         : {}),
     },
     orderBy: { createdAt: "desc" },
@@ -406,14 +406,21 @@ export async function obtenerMetricasGraficos() {
   const ahora = new Date();
 
   // 1. Distribución de líneas
-  const [personal, corporativo, deportivo] = await Promise.all([
+  const [psicologiaClinica, personal, corporativo, deportivo] = await Promise.all([
+    db.cliente.count({ where: { linea: "PSICOLOGIA_CLINICA" } }),
     db.cliente.count({ where: { linea: "PERSONAL" } }),
     db.cliente.count({ where: { linea: "CORPORATIVO" } }),
     db.cliente.count({ where: { linea: "DEPORTIVO" } }),
   ]);
-  const totalLineas = Math.max(1, personal + corporativo + deportivo);
+  const totalLineas = Math.max(1, psicologiaClinica + personal + corporativo + deportivo);
 
   const distribucionLineas = [
+    {
+      linea: "Consulta de Psicología Clínica",
+      cantidad: psicologiaClinica,
+      porcentaje: Math.round((psicologiaClinica / totalLineas) * 100),
+      color: "#6a1b9a",
+    },
     {
       linea: "Personal / Ejecutivo",
       cantidad: personal,

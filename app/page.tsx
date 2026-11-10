@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { User, Briefcase, Activity, LogIn } from "lucide-react";
+import { Brain, User, Briefcase, Activity, LogIn } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import { TIPOS_ASESORIA } from "@/lib/mock-data";
 
 // Server Component: sin estado propio, solo navegación — evita el costo
 // de un client bundle innecesario para una pantalla de puros links.
 
-const ICONOS = { user: User, briefcase: Briefcase, activity: Activity } as const;
+const ICONOS = { brain: Brain, user: User, briefcase: Briefcase, activity: Activity } as const;
 
 export default function LandingPage() {
   return (

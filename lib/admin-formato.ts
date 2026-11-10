@@ -75,12 +75,14 @@ export const ROL_LABEL: Record<Rol, string> = {
 };
 
 export const LINEA_LABEL: Record<LineaAsesoria, string> = {
+  PSICOLOGIA_CLINICA: "Psicología Clínica",
   PERSONAL: "Personal",
   CORPORATIVO: "Corporativo",
   DEPORTIVO: "Deportivo",
 };
 
 export const LINEA_BADGE: Record<LineaAsesoria, string> = {
+  PSICOLOGIA_CLINICA: "bg-avanza-purple-light text-avanza-purple",
   PERSONAL: "bg-avanza-green-light text-avanza-green-dark",
   CORPORATIVO: "bg-avanza-blue-light text-avanza-blue",
   DEPORTIVO: "bg-avanza-orange-light text-avanza-orange",

@@ -68,7 +68,7 @@ export default function AdminSecretariaPage() {
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoEmail, setNuevoEmail] = useState("");
   const [nuevoTelefono, setNuevoTelefono] = useState("");
-  const [nuevaLinea, setNuevaLinea] = useState("PERSONAL");
+  const [nuevaLinea, setNuevaLinea] = useState("PSICOLOGIA_CLINICA");
   const [nuevoCoachId, setNuevoCoachId] = useState("");
   const [registrando, setRegistrando] = useState(false);
 
@@ -242,11 +242,10 @@ export default function AdminSecretariaPage() {
           <button
             type="button"
             onClick={() => setTab("citas")}
-            className={`flex items-center gap-2 pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${
-              tab === "citas"
+            className={`flex items-center gap-2 pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${tab === "citas"
                 ? "border-avanza-green text-avanza-green"
                 : "border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400"
-            }`}
+              }`}
           >
             <Calendar className="h-4 w-4" />
             <span>Citas del Día ({citasHoy.length})</span>
@@ -255,11 +254,10 @@ export default function AdminSecretariaPage() {
           <button
             type="button"
             onClick={() => setTab("directorio")}
-            className={`flex items-center gap-2 pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${
-              tab === "directorio"
+            className={`flex items-center gap-2 pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${tab === "directorio"
                 ? "border-avanza-green text-avanza-green"
                 : "border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400"
-            }`}
+              }`}
           >
             <Users className="h-4 w-4" />
             <span>Directorio de Coachees ({clientes.length})</span>
@@ -268,11 +266,10 @@ export default function AdminSecretariaPage() {
           <button
             type="button"
             onClick={() => setTab("registro")}
-            className={`flex items-center gap-2 pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${
-              tab === "registro"
+            className={`flex items-center gap-2 pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${tab === "registro"
                 ? "border-avanza-green text-avanza-green"
                 : "border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400"
-            }`}
+              }`}
           >
             <UserPlus className="h-4 w-4" />
             <span>Registro Rápido</span>
@@ -315,11 +312,10 @@ export default function AdminSecretariaPage() {
                             {formatHora(cita.fecha)}
                           </span>
                           <span
-                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                              cita.estado === "CONFIRMADA"
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${cita.estado === "CONFIRMADA"
                                 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
                                 : "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                            }`}
+                              }`}
                           >
                             {cita.estado}
                           </span>
@@ -491,6 +487,7 @@ export default function AdminSecretariaPage() {
                     onChange={(e) => setNuevaLinea(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs sm:text-sm text-gray-900 focus:border-avanza-green focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   >
+                    <option value="PSICOLOGIA_CLINICA">Consulta de Psicología Clínica</option>
                     <option value="PERSONAL">Personal</option>
                     <option value="CORPORATIVO">Corporativo / B2B</option>
                     <option value="DEPORTIVO">Deportivo</option>

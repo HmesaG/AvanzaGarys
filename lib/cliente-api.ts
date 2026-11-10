@@ -77,7 +77,7 @@ export type EstadoPago = {
 export type EstadoTarea = { id: string; label: string; completada: boolean };
 
 export type EstadoCliente = {
-  linea: "PERSONAL" | "CORPORATIVO" | "DEPORTIVO";
+  linea: "PSICOLOGIA_CLINICA" | "PERSONAL" | "CORPORATIVO" | "DEPORTIVO";
   requiereDiagnostico: boolean;
   diagnosticoCompletado: boolean;
   requiereDiagnosticoDeportivo?: boolean;
@@ -102,7 +102,7 @@ export type DatosRegistro = {
   telefono: string;
   correo: string;
   password: string;
-  tipoAsesoria: "personal" | "corporativo" | "deportivo";
+  tipoAsesoria: "psicologia_clinica" | "personal" | "corporativo" | "deportivo";
   empresaId?: string;
 };
 

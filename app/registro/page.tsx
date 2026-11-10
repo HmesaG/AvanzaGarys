@@ -111,7 +111,7 @@ function RegistroForm() {
         telefono: form.telefono,
         correo: form.correo,
         password: form.password,
-        tipoAsesoria: form.tipoAsesoria as "personal" | "corporativo" | "deportivo",
+        tipoAsesoria: form.tipoAsesoria as TipoAsesoria,
         empresaId: form.tipoAsesoria === "corporativo" && form.empresaId ? form.empresaId : undefined,
       });
       successToast("Registro guardado");

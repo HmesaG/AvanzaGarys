@@ -3,16 +3,24 @@
 // evaluación). Ya no hay datos mock acá — todo lo demás se migró a
 // lib/cliente-api.ts / lib/admin-queries.ts contra la API real.
 
-export type TipoAsesoria = "personal" | "corporativo" | "deportivo";
+export type TipoAsesoria = "psicologia_clinica" | "personal" | "corporativo" | "deportivo";
 
 export const TIPOS_ASESORIA: {
   id: TipoAsesoria;
   label: string;
-  icon: "user" | "briefcase" | "activity";
+  icon: "brain" | "user" | "briefcase" | "activity";
   colorClass: string;
   bgClass: string;
   ringClass: string;
 }[] = [
+  {
+    id: "psicologia_clinica",
+    label: "Consulta de Psicología Clínica",
+    icon: "brain",
+    colorClass: "bg-avanza-purple hover:bg-avanza-purple-dark",
+    bgClass: "bg-avanza-purple-light",
+    ringClass: "focus-visible:ring-avanza-purple",
+  },
   {
     id: "personal",
     label: "Avanza Personal",

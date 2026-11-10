@@ -18,6 +18,7 @@ enum Rol {
 }
 
 enum LineaAsesoria {
+  PSICOLOGIA_CLINICA
   PERSONAL
   CORPORATIVO
   DEPORTIVO

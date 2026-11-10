@@ -633,11 +633,70 @@ async function main() {
     ],
   });
 
+  // =========================================================================
+  // CLIENTE 6: PSICOLOGÍA CLÍNICA (psicologia@avanza.test)
+  // =========================================================================
+  const { cliente: cPsico } = await asegurarCliente({
+    email: "psicologia@avanza.test",
+    nombre: "Sofía Vargas (Paciente Psicología Clínica)",
+    linea: "PSICOLOGIA_CLINICA",
+    telefono: "809-555-0106",
+    coachId: coach1.id,
+  });
+
+  await db.evaluacion.create({
+    data: {
+      clienteId: cPsico.id,
+      objetivoPrincipal: "Manejo clínico de ansiedad generalizada, regulación del sueño y fortalecimiento de límites saludables.",
+      principalDificultad: "Episodios de rumiación nocturna y agotamiento emocional.",
+      tiempoObjetivo: "3 meses",
+      respuestas: {
+        objetivoPrincipal: "Manejo clínico de ansiedad generalizada y regulación del sueño.",
+        principalDificultad: "Episodios de rumiación nocturna y agotamiento emocional.",
+        tiempoObjetivo: "3 meses",
+      },
+      revisadaPorId: coach1.id,
+      revisadaAt: hace5Dias,
+      createdAt: hace5Dias,
+    },
+  });
+
+  await db.programa.create({
+    data: {
+      clienteId: cPsico.id,
+      nombre: "Acompañamiento en Psicología Clínica & Bienestar Emocional",
+      descripcion: "Proceso psicoterapéutico estructurado para regulación de ansiedad, higiene del sueño y autocuidado clínico.",
+      progreso: 50,
+      activo: true,
+      consentimientoAceptado: true,
+      consentimientoAt: hace5Dias,
+    },
+  });
+
+  await db.pago.create({
+    data: {
+      clienteId: cPsico.id,
+      monto: 7500,
+      estado: "PAGADO",
+      metodo: "Transferencia",
+      concepto: "Programa: Consulta de Psicología Clínica",
+      fechaPago: hace5Dias,
+    },
+  });
+
+  await db.tarea.createMany({
+    data: [
+      { clienteId: cPsico.id, label: "Registro diario de pensamientos automáticos (ABC)", completada: true },
+      { clienteId: cPsico.id, label: "Protocolo de higiene del sueño 60 min antes de dormir", completada: false },
+    ],
+  });
+
   console.log("✅ Semilla de usuarios y datos de prueba completada con éxito:");
   console.log("   - Dueño / Admin:      dueno@avanza.test       (Avanza2026!)");
   console.log("   - Coach 1 (30%):      coach1@avanza.test      (Avanza2026!)");
   console.log("   - Coach 2 ($1,500):   coach2@avanza.test      (Avanza2026!)");
   console.log("   - Secretaria:         secretaria@avanza.test  (Avanza2026!)");
+  console.log("   - Psicología Clínica: psicologia@avanza.test  (Avanza2026!)");
   console.log("   - Cliente Personal:   personal@avanza.test    (Avanza2026!)");
   console.log("   - Cliente Solicitud:  solicitud@avanza.test   (Avanza2026!)");
   console.log("   - Cliente Voucher:    voucher@avanza.test     (Avanza2026!)");
